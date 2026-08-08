@@ -25,12 +25,18 @@ export async function apiFetch<T>(
   url: string,
   init?: RequestInit,
 ): Promise<T> {
+  // Only a string body is JSON here (apiJson stringifies). A FormData body
+  // must be left alone: the browser generates
+  // `multipart/form-data; boundary=…` for it, and setting Content-Type
+  // ourselves drops the boundary, so the server cannot parse the upload.
+  const isJsonBody = typeof init?.body === "string";
+
   let response: Response;
   try {
     response = await fetch(url, {
       ...init,
       headers: {
-        ...(init?.body ? { "Content-Type": "application/json" } : {}),
+        ...(isJsonBody ? { "Content-Type": "application/json" } : {}),
         ...init?.headers,
       },
     });

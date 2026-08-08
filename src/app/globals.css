@@ -975,6 +975,14 @@ select:disabled {
   max-width: 680px;
 }
 
+/* The dialog is focused programmatically when it opens so keyboard users land
+   inside it. A focus ring around the whole panel communicates nothing, though
+   — the ring belongs on the controls within, which keep theirs. */
+.modal:focus,
+.modal:focus-visible {
+  outline: none;
+}
+
 .modal.danger .modal-head {
   border-bottom-color: var(--danger-soft);
 }
