@@ -2,6 +2,11 @@ node_modules
 .next
 .git
 .env
+.env.*
+!.env.example
+!.env.staging.example
+!.env.production.example
+data
 npm-debug.log*
-public/uploads/photo_*
 *.zip
+.DS_Store

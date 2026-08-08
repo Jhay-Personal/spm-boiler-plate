@@ -1,9 +1,23 @@
 node_modules
 .next
 out
+next-env.d.ts
+
+# Environment files — only the *.example templates are committed.
 .env
-.env.local
+.env.*
+!.env.example
+!.env.staging.example
+!.env.production.example
+
 npm-debug.log*
-public/uploads/*
-!public/uploads/.gitkeep
+
+# Runtime data (uploads live outside public/ and are served via an authed route)
+data/
+
+*.zip
 .DS_Store
+
+# Local QA artifacts
+.playwright-mcp/
+*.png

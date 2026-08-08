@@ -1,26 +1,35 @@
 # -----------------------------------------------------------------------------
-# 2ni Admin Portal — one-command run.
+# Admin Portal — one-command run.
 #
+#   cp .env.example .env      # then fill in AUTH_SECRET and SEED_ADMIN_*
 #   docker compose up --build
 #
-# Then open http://localhost:3000  (login: admin@email.com / 123123123)
+# Then open http://localhost:3000
 #
-# This starts BOTH a PostgreSQL database and the admin app, wires them
-# together, and seeds the default admin automatically. No other setup needed.
+# No credentials are hard-coded in this file. The `:?` syntax makes each
+# variable REQUIRED: compose refuses to start and names the missing variable,
+# rather than silently falling back to a published default that would then be
+# running in production.
 # -----------------------------------------------------------------------------
 services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: twoni
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-admin_portal}
     ports:
-      - "5432:5432" # exposed so your n8n pipeline can share this same database
+      # Bound to loopback only. "5432:5432" would publish the database on every
+      # interface of the host, including public ones on a cloud VM.
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d twoni"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-admin_portal}",
+        ]
       interval: 3s
       timeout: 3s
       retries: 20
@@ -28,16 +37,18 @@ services:
   app:
     build: .
     environment:
-      DATABASE_URL: postgres://postgres:postgres@db:5432/twoni
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-admin_portal}
       DATABASE_SSL: "false"
-      AUTH_SECRET: local-docker-secret-change-me-0123456789abcdef
-      SEED_ADMIN_EMAIL: admin@email.com
-      SEED_ADMIN_PASSWORD: "123123123"
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env (openssl rand -base64 48)}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:?set SEED_ADMIN_EMAIL in .env}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?set SEED_ADMIN_PASSWORD in .env}
+      UPLOAD_DIR: /app/data/uploads
       NODE_ENV: production
     ports:
       - "3000:3000"
     volumes:
-      - uploads:/app/public/uploads # keep uploaded photos across restarts
+      # Uploaded photos live outside the app image so they survive rebuilds.
+      - uploads:/app/data/uploads
     depends_on:
       db:
         condition: service_healthy

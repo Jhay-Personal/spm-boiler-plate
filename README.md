@@ -1,123 +1,197 @@
-# 2ni Admin Portal
+# Admin Portal
 
-An admin console for the **2ni Viral Content Pipeline**. It adds authentication,
-user & role management, a profile area, and a live dashboard that reads from the
-pipeline's own `viral_posts` and `generated_content` tables.
+A TypeScript starting point for internal admin tools: session sign-in, **server-enforced** role-based module access, user management, profile management, and a light/dark/system theme.
 
-Built with **Next.js 14 (App Router)** + **PostgreSQL**. Sessions are signed
-JWTs in an http-only cookie; passwords are hashed with bcrypt.
-
----
-
-## Modules (left sidebar)
-
-| Module | What it does |
-|--------|--------------|
-| **Dashboard** | Live pipeline metrics: posts scraped, rewrites generated, publish rate, status breakdown, top source pages, recent rewrites. |
-| **User Management** | Add/edit users, upload a profile photo, capture basic info, assign a role group, reset passwords, enable/disable, delete. |
-| **Role Management** | Create a group and select the list of modules it can access. |
-| **Viral Posts** | Browse/search the scraped source posts (`viral_posts`). |
-| **Generated Content** | Browse the AI rewrites and their publish status (`generated_content`). |
-| **Profile Management** | Every signed-in user can edit their own details, photo, and password. |
-
-Login is by **email _or_ mobile number** + password.
+Built on Next.js 16 (App Router) + React 19 + PostgreSQL. No ORM — plain parameterized SQL.
 
 ---
 
 ## Quick start
 
-### 1. Install
-```bash
-npm install
-```
-
-### 2. Configure
 ```bash
 cp .env.example .env
+# Fill in AUTH_SECRET, SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD.
+#   openssl rand -base64 48   → AUTH_SECRET
+#   openssl rand -base64 24   → SEED_ADMIN_PASSWORD
+
+npm install
+npm run init-db     # applies db/admin_schema.sql, creates the first admin
+npm run dev         # http://localhost:3000
 ```
-Edit `.env` and set:
 
-- `DATABASE_URL` — point it at the **same** Postgres your pipeline uses (so the
-  dashboard has data). Set `DATABASE_SSL=true` for cloud databases
-  (Supabase / Neon / Render / Heroku).
-- `AUTH_SECRET` — a long random string. Generate one with `openssl rand -base64 48`.
-- `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` — the default admin created below
-  (defaults: `admin@email.com` / `123123123`).
+There are **no default credentials.** `init-db` refuses to run until you choose them, and re-running it never overwrites an existing account's password.
 
-### 3. Initialize the database
+### With Docker
+
 ```bash
-npm run init-db
-```
-This creates the `roles` and `admin_users` tables (and the pipeline tables if
-they don't exist yet), then seeds:
-
-- a **Super Admin** role (all-access),
-- the default admin account,
-- two example roles (Content Manager, Viewer).
-
-Safe to re-run — it upserts.
-
-### 4. Run
-```bash
-npm run dev      # http://localhost:3000  (development)
-# or
-npm run build && npm run start   # production
+cp .env.example .env    # POSTGRES_PASSWORD, AUTH_SECRET, SEED_ADMIN_* required
+docker compose up --build
 ```
 
-Sign in with your seeded admin credentials.
+Compose names any missing required variable and refuses to start rather than falling back to a default.
 
 ---
 
-## Default login
+## Modules
 
-```
-Email:    admin@email.com
-Password: 123123123
-```
-Change this in **Profile Management** after first sign-in (or before deploying).
+| Module | Key | What it does |
+|---|---|---|
+| Dashboard | `dashboard` | Account and access-group figures |
+| User Management | `users` | Create accounts, assign roles, reset passwords |
+| Role Management | `roles` | Create groups and pick the modules each may use |
+| Profile Management | `profile` | Own details, photo, and password |
+
+Sign-in accepts **either** an email address or a mobile number, plus a password.
+
+`profile` is always available to any signed-in user. The rest are granted per role.
 
 ---
 
-## How access control works
+## Access control
 
-Each user is assigned one **role group**. A role holds a list of module keys
-(e.g. `["dashboard","viral_posts"]`). The sidebar only shows modules the user's
-role grants. The **Super Admin** role is all-access and can't be deleted;
-**Profile Management** is always available to every signed-in user.
+This is the part most worth understanding before you build on it. See [docs/rbac.md](docs/rbac.md) for the full picture.
 
-Module keys: `dashboard`, `users`, `roles`, `viral_posts`, `generated_content`,
-`profile` (defined in `src/lib/modules.js` — add a page + a key there to extend).
+The short version:
+
+- A **role** is a named group holding a list of module keys, plus an `is_super` all-access flag.
+- Filtering the sidebar is **not** access control. Every API route calls `requireModule()` / `requireSuper()`, and every page calls `requirePageModule()`, from [`src/lib/guard.ts`](src/lib/guard.ts).
+- Adding a module to [`src/lib/modules.ts`](src/lib/modules.ts) makes it *grantable*. It is not *protected* until its route and page call a guard.
+- `src/proxy.ts` (Next 16 middleware) is **not** the security boundary — it only checks whether a session cookie exists, to redirect signed-out browsers, and emits the per-request CSP nonce. All real checks happen in the handlers, so a middleware bypass costs nothing.
+
+Operations that can escalate privilege or take over an account require `is_super`:
+
+| Action | Required |
+|---|---|
+| Assign or change a user's `role_id` | super admin, and never on yourself |
+| Enable/disable an account | super admin, and never on yourself |
+| Reset another user's password | super admin |
+| Edit or delete a super admin account | super admin |
+
+---
+
+## API
+
+Every endpoint returns the same envelope:
+
+```jsonc
+{ "success": true,  "data": { }, "error": null }
+{ "success": false, "data": null, "error": { "code": "FORBIDDEN", "message": "…" } }
+```
+
+Payloads are validated with Zod on the server, using the **same schemas** the client forms use (`src/features/*/schema.ts`), so rules are written once.
+
+| Method | Path | Guard |
+|---|---|---|
+| POST | `/api/auth/login` | public, rate-limited |
+| POST | `/api/auth/logout` | session |
+| GET | `/api/dashboard` | `dashboard` |
+| GET, POST | `/api/users` | `users` (+ super to assign a role) |
+| GET, PUT, DELETE | `/api/users/:id` | `users` (+ super for role/status) |
+| POST | `/api/users/:id/reset-password` | **super only** |
+| GET, POST | `/api/roles` | `roles` |
+| GET, PUT, DELETE | `/api/roles/:id` | `roles` |
+| GET, PUT | `/api/profile` | session (own record only) |
+| POST | `/api/upload` | session |
+| GET | `/api/uploads/:name` | session |
+
+---
+
+## Security model
+
+What is enforced, and where:
+
+- **Sessions** — HS256 JWT in an `httpOnly`, `sameSite=lax`, `secure`-in-production cookie, 8 hour lifetime. The token carries only a user id and a `token_version`; role, status and profile are re-read from the database on every request, so a change takes effect immediately rather than at next sign-in.
+- **Session revocation** — incrementing `admin_users.token_version` invalidates every outstanding token for that user. Done automatically on password change, admin password reset, and account disable.
+- **Passwords** — bcrypt, cost 12, 12-character minimum.
+- **Login** — rate limited per IP *and* per identifier; generic failure message; a dummy bcrypt comparison on the "no such user" path so response time doesn't reveal which identifiers exist.
+- **SQL** — every query parameterized (`$1`, `$2`, …). No string interpolation anywhere.
+- **Uploads** — the file type is decided by **magic bytes**, never by the client's `Content-Type` or the original filename. Stored under `UPLOAD_DIR` with a random UUID name, *outside* `public/` (files under `public/` are served statically before any auth check can run), and served by an authenticated route that pins an explicit `Content-Type` and sends `X-Content-Type-Options: nosniff`.
+- **Headers** — HSTS, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy` and `Permissions-Policy` from `next.config.ts`; a per-request nonce-based CSP from `src/proxy.ts`.
+- **Database TLS** — when `DATABASE_SSL=true` the certificate chain **is** verified. Optionally pin a CA with `DATABASE_CA_CERT`.
+- **Logging** — structured JSON (`timestamp`, `level`, `message`, context) with an automatic redaction list, so passwords and tokens cannot be logged by accident.
+- **Secrets** — no fallback defaults; no `NEXT_PUBLIC_*` variables exist. Missing configuration is a startup failure.
+
+### Known gaps
+
+Deliberate, and worth knowing before you deploy this:
+
+- **Rate limiting is per-process, in memory.** Correct for a single instance; behind a load balancer each instance keeps its own counters. Swap `hit()` in [`src/lib/rate-limit.ts`](src/lib/rate-limit.ts) for a Redis `INCR` with the same signature.
+- **CSRF protection relies on `SameSite=Lax`** plus the JSON content-type requirement. There is no CSRF token. Adequate today; revisit before serving the app from a shared parent domain.
+- **`x-forwarded-for` is trusted** for the IP rate-limit key. Spoofing it does not buy unlimited guesses — the per-identifier limit is independent — but put a proxy that overwrites the header in front of this.
+- **No automated tests.** There is no test framework configured.
+- **No audit log table.** Privileged actions are logged to stdout, not recorded in the database.
 
 ---
 
 ## Project layout
 
+Grouped by feature rather than by file type.
+
 ```
-db/admin_schema.sql          Admin/auth tables (+ pipeline tables, idempotent)
-scripts/init-db.js           Applies schema, seeds admin & example roles
-src/lib/db.js                Postgres pool (lazy) + query helpers
-src/lib/session.js           JWT sign/verify (edge-safe, used by middleware)
-src/lib/auth.js              bcrypt + getCurrentUser (loads user + role)
-src/lib/modules.js           Module registry + access helpers
-src/middleware.js            Redirects unauthenticated users to /login
-src/components/               AppShell (sidebar), Modal, Avatar, PhotoUploader
-src/app/login/                Login page
-src/app/(app)/                Authenticated area (shared sidebar layout)
-  dashboard/ users/ roles/ profile/ viral-posts/ generated-content/
-src/app/api/                  Route handlers (auth, users, roles, profile,
-                              upload, dashboard, viral-posts, generated-content)
-public/uploads/               Uploaded profile photos are written here
+src/
+├── app/                     thin route entry points only
+│   ├── (main)/              authenticated shell — dashboard, users, roles, profile
+│   ├── api/                 route handlers
+│   ├── login/
+│   └── layout.tsx           theme script + providers
+├── components/
+│   ├── AppShell.tsx         sidebar, topbar, mobile drawer
+│   └── ui/                  Modal, Avatar, PhotoUploader, ErrorDialogProvider
+├── features/
+│   ├── auth/                login form + schema
+│   ├── dashboard/           client view + queries
+│   ├── users/               client view + schema + queries
+│   ├── roles/               client view + schema + queries
+│   ├── profile/             client view + schema
+│   └── theme/               provider, toggle, no-flash script
+├── lib/
+│   ├── guard.ts             requireUser / requireModule / requireSuper
+│   ├── modules.ts           module catalog — the RBAC source of truth
+│   ├── api.ts               response envelope + route() error wrapper
+│   ├── api-client.ts        browser-side fetch wrapper
+│   ├── auth.ts, session.ts  password hashing, JWT, current user
+│   ├── db.ts                pg pool + typed query helpers
+│   ├── validation.ts        shared Zod field schemas
+│   ├── uploads.ts           magic-byte sniffing, safe path resolution
+│   ├── rate-limit.ts, logger.ts, env.ts, types.ts
+└── proxy.ts                 CSP nonce + signed-out redirect (NOT authz)
 ```
+
+Each feature's `queries.ts` is shared by its page (server render) and its API route (client refresh), so the two cannot drift apart.
 
 ---
 
-## Notes for production
+## Theming
 
-- Set a strong `AUTH_SECRET` and run behind HTTPS (the session cookie is marked
-  `secure` in production).
-- Uploaded photos are stored on the local filesystem under `public/uploads`.
-  On ephemeral/serverless hosts this won't persist — switch the upload route to
-  S3 / Cloudinary / Supabase Storage if you deploy there. On a normal VPS (the
-  same box that runs your n8n pipeline) the filesystem approach is fine.
-- The admin tables live alongside your pipeline tables, so one `DATABASE_URL`
-  covers both the console and the dashboard data.
+Three modes — light, dark, and system — from the toggle in the topbar and on the login page.
+
+- The preference is stored in `localStorage` under `admin-portal-theme`.
+- An inline script in the root layout applies it **before first paint**, so there is no white flash on load. It carries the CSP nonce.
+- "System" stores no `data-theme` attribute at all, leaving the `prefers-color-scheme` media query in charge — and it tracks OS changes live via `matchMedia`.
+- Every colour resolves through a CSS custom property in `src/app/globals.css`. Restyling means editing the token blocks, not hunting for hex values.
+
+The layout is mobile-first: below 900px the sidebar becomes an off-canvas drawer, tables scroll horizontally inside their container, and inputs use a 16px font so iOS Safari doesn't zoom on focus.
+
+---
+
+## Adding a module
+
+1. Add an entry to `MODULES` in [`src/lib/modules.ts`](src/lib/modules.ts).
+2. Create `src/app/(main)/<path>/page.tsx` — a server component whose first line is `await requirePageModule("<key>")`.
+3. Create `src/features/<name>/` for its client view, Zod schema, and queries.
+4. Add API routes that start with `await requireModule("<key>")`.
+
+The sidebar and the Role Management checkboxes pick it up automatically. Step 2 and 4 are the ones that actually protect it.
+
+---
+
+## Scripts
+
+| Command | Purpose |
+|---|---|
+| `npm run dev` | Development server |
+| `npm run build` | Production build (type-checks as part of the build) |
+| `npm run start` | Serve the production build |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run init-db` | Apply schema + ensure the first admin exists (idempotent) |

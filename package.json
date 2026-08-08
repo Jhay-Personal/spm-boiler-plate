@@ -1,21 +1,37 @@
 {
-  "name": "2ni-admin",
-  "version": "1.0.0",
+  "name": "admin-portal",
+  "version": "2.0.0",
   "private": true,
-  "description": "2ni Admin Portal — management console for the 2ni Viral Content Pipeline",
+  "description": "A TypeScript admin portal boiler-plate: session auth, server-enforced role-based module access, user management, and light/dark theming.",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "init-db": "node scripts/init-db.js"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "init-db": "tsx scripts/init-db.ts"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "jose": "^5.9.6",
-    "next": "14.2.35",
-    "pg": "^8.13.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "bcryptjs": "^3.0.3",
+    "jose": "^6.2.8",
+    "next": "^16.3.0",
+    "pg": "^8.22.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "server-only": "^0.0.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@types/pg": "^8.21.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.3.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
   }
 }
