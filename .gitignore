@@ -21,3 +21,4 @@ data/
 # Local QA artifacts
 .playwright-mcp/
 *.png
+tsconfig.tsbuildinfo
