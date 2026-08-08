@@ -1,0 +1,47 @@
+# -----------------------------------------------------------------------------
+# 2ni Admin Portal — one-command run.
+#
+#   docker compose up --build
+#
+# Then open http://localhost:3000  (login: admin@email.com / 123123123)
+#
+# This starts BOTH a PostgreSQL database and the admin app, wires them
+# together, and seeds the default admin automatically. No other setup needed.
+# -----------------------------------------------------------------------------
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: twoni
+    ports:
+      - "5432:5432" # exposed so your n8n pipeline can share this same database
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d twoni"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/twoni
+      DATABASE_SSL: "false"
+      AUTH_SECRET: local-docker-secret-change-me-0123456789abcdef
+      SEED_ADMIN_EMAIL: admin@email.com
+      SEED_ADMIN_PASSWORD: "123123123"
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    volumes:
+      - uploads:/app/public/uploads # keep uploaded photos across restarts
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  uploads:

@@ -1,0 +1,21 @@
+{
+  "name": "2ni-admin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "2ni Admin Portal — management console for the 2ni Viral Content Pipeline",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "init-db": "node scripts/init-db.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "jose": "^5.9.6",
+    "next": "14.2.35",
+    "pg": "^8.13.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}
