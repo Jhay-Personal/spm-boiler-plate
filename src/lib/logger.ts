@@ -25,17 +25,39 @@ const REDACTED_KEYS = new Set([
   "secret",
 ]);
 
-function scrub(value: unknown, depth = 0): unknown {
-  if (depth > 4 || value === null || typeof value !== "object") return value;
-  if (Array.isArray(value)) return value.map((v) => scrub(v, depth + 1));
+const MAX_DEPTH = 6;
 
-  const out: Record<string, unknown> = {};
-  for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-    out[key] = REDACTED_KEYS.has(key.toLowerCase())
-      ? "[redacted]"
-      : scrub(val, depth + 1);
+/**
+ * Recursively copies `value`, replacing sensitive keys with a placeholder.
+ *
+ * `seen` breaks reference cycles. Without it a cyclic object would survive
+ * into JSON.stringify and throw — and because this logger is called from the
+ * catch-all route wrapper, that would turn a handled error into an unhandled
+ * one at exactly the wrong moment.
+ */
+function scrub(value: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
+  if (value === null || typeof value !== "object") return value;
+  if (depth >= MAX_DEPTH) return "[truncated]";
+  if (seen.has(value)) return "[circular]";
+
+  seen.add(value);
+  try {
+    if (Array.isArray(value)) {
+      return value.map((item) => scrub(item, depth + 1, seen));
+    }
+
+    const out: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+      out[key] = REDACTED_KEYS.has(key.toLowerCase())
+        ? "[redacted]"
+        : scrub(val, depth + 1, seen);
+    }
+    return out;
+  } finally {
+    // Sibling references to the same object are fine — only a genuine cycle
+    // (an ancestor repeating) should be collapsed.
+    seen.delete(value);
   }
-  return out;
 }
 
 function emit(level: LogLevel, message: string, context?: LogContext): void {
@@ -46,7 +68,19 @@ function emit(level: LogLevel, message: string, context?: LogContext): void {
     ...(context ? (scrub(context) as LogContext) : {}),
   };
 
-  const line = JSON.stringify(entry);
+  let line: string;
+  try {
+    line = JSON.stringify(entry);
+  } catch {
+    // Last resort: never let logging itself become the failure.
+    line = JSON.stringify({
+      timestamp: entry.timestamp,
+      level,
+      message,
+      logError: "context could not be serialised",
+    });
+  }
+
   if (level === "error") console.error(line);
   else if (level === "warn") console.warn(line);
   else console.log(line);

@@ -118,8 +118,47 @@ Deliberate, and worth knowing before you deploy this:
 - **Rate limiting is per-process, in memory.** Correct for a single instance; behind a load balancer each instance keeps its own counters. Swap `hit()` in [`src/lib/rate-limit.ts`](src/lib/rate-limit.ts) for a Redis `INCR` with the same signature.
 - **CSRF protection relies on `SameSite=Lax`** plus the JSON content-type requirement. There is no CSRF token. Adequate today; revisit before serving the app from a shared parent domain.
 - **`x-forwarded-for` is trusted** for the IP rate-limit key. Spoofing it does not buy unlimited guesses — the per-identifier limit is independent — but put a proxy that overwrites the header in front of this.
-- **No automated tests.** There is no test framework configured.
 - **No audit log table.** Privileged actions are logged to stdout, not recorded in the database.
+- **No browser-level (end-to-end) tests.** The API surface is covered thoroughly; the React components are not driven by an automated test.
+
+---
+
+## Testing
+
+```bash
+npm run test          # unit tests — fast, no database needed
+npm run test:api      # integration tests — needs Postgres + a build
+npm run verify        # typecheck → lint → unit → build → integration
+```
+
+**Unit tests** ([tests/unit/](tests/unit/)) cover the pure logic the security model rests on: module/role resolution in `allowedModules` and `canAccess`, every Zod field schema, magic-byte image sniffing and stored-filename validation, the rate-limiter windows, and the logger's redaction rules. They need no services and run on a clean checkout.
+
+**Integration tests** ([tests/api/](tests/api/)) drive a real `next start` server against a real PostgreSQL database over HTTP — no mocks. Mocking the database or the request pipeline would mean testing the mocks rather than the guards, and the guards are the point. The harness ([tests/api/setup/globalSetup.ts](tests/api/setup/globalSetup.ts)) drops the admin tables, re-seeds, boots the server on port 3311, and tears it down afterwards.
+
+They need a database and a build:
+
+```bash
+docker run -d --name admin-portal-db \
+  -e POSTGRES_PASSWORD=devpassword -e POSTGRES_DB=admin_portal \
+  -p 55432:5432 postgres:16-alpine
+
+cp .env.example .env   # DATABASE_URL and AUTH_SECRET must be set
+npm run build
+npm run test:api
+```
+
+What the integration suite asserts, grouped by the failure each part prevents:
+
+| File | Covers |
+|---|---|
+| [rbac.test.ts](tests/api/rbac.test.ts) | Every escalation path: self-promotion via `role_id`, disabling peers, resetting another user's password, editing a super admin, plus the page-level redirects — and that a legitimate role still works. |
+| [auth.test.ts](tests/api/auth.test.ts) | Sign-in, cookie attributes, user-enumeration parity, forged / tampered / `alg:none` tokens, and all four session-revocation paths. |
+| [uploads.test.ts](tests/api/uploads.test.ts) | Magic-byte sniffing vs. spoofed `Content-Type` and filenames, size and traversal limits, authenticated serving, and `photo_url` restriction. |
+| [contract.test.ts](tests/api/contract.test.ts) | Response envelope, validation and conflict handling, security headers, CSP nonce freshness and coverage, and both rate limiters. |
+
+Each `TestClient` sends a distinct `x-forwarded-for`, so it models a separate browser. That is what lets the throttling tests prove the per-identifier limit holds even when an attacker rotates source IPs.
+
+[CI](.github/workflows/ci.yml) runs the whole `verify` chain on every push and pull request, with Postgres as a service container.
 
 ---
 
@@ -194,4 +233,9 @@ The sidebar and the Role Management checkboxes pick it up automatically. Step 2 
 | `npm run start` | Serve the production build |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `tsc --noEmit` |
+| `npm run test` | Unit tests (no services required) |
+| `npm run test:watch` | Unit tests in watch mode |
+| `npm run test:coverage` | Unit tests with a coverage summary |
+| `npm run test:api` | Integration tests (needs Postgres + a build) |
+| `npm run verify` | Everything: typecheck, lint, unit, build, integration |
 | `npm run init-db` | Apply schema + ensure the first admin exists (idempotent) |

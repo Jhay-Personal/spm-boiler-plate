@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: admin_portal_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/admin_portal_test
+      DATABASE_SSL: "false"
+      # Test-only secret. Real deployments inject this from a secret store.
+      AUTH_SECRET: ci-only-secret-value-not-used-anywhere-else-0123456789
+      SEED_ADMIN_EMAIL: ci-admin@example.test
+      SEED_ADMIN_PASSWORD: CiAdminPassword12345
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test
+
+      # The API tests drive a real production server, so they need the build.
+      - name: Build
+        run: npm run build
+
+      - name: API integration tests
+        run: npm run test:api

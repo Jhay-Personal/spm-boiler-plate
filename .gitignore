@@ -22,3 +22,5 @@ data/
 .playwright-mcp/
 *.png
 tsconfig.tsbuildinfo
+
+coverage/
