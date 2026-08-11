@@ -23,4 +23,9 @@ data/
 *.png
 tsconfig.tsbuildinfo
 
+# Playwright output
+/test-results/
+/playwright-report/
+/blob-report/
+
 coverage/
