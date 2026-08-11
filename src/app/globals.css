@@ -984,6 +984,12 @@ select:disabled {
   overflow-y: auto;
 }
 
+/* The overlay is a click target for dismissal; the panel is not. Without this,
+   a drag that begins on the overlay paints a selection across the dialog. */
+.modal-overlay {
+  user-select: none;
+}
+
 .modal {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -992,6 +998,7 @@ select:disabled {
   max-width: 560px;
   box-shadow: var(--shadow);
   margin: auto;
+  user-select: text;
 }
 
 .modal.wide {
