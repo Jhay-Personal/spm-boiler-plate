@@ -2,9 +2,12 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Avatar from "@/components/ui/Avatar";
+import Field from "@/components/ui/Field";
 import Modal from "@/components/ui/Modal";
 import PhotoUploader from "@/components/ui/PhotoUploader";
 import { useErrorDialog } from "@/components/ui/ErrorDialogProvider";
+import { useToast } from "@/components/ui/ToastProvider";
+import { useFormErrors } from "@/features/forms/useFormErrors";
 import { apiFetch, apiJson } from "@/lib/api-client";
 import { MIN_PASSWORD_LENGTH } from "@/lib/validation";
 import type { RoleSummary, UserStatus, UserSummary } from "@/lib/types";
@@ -54,9 +57,14 @@ export function UsersClient({
   const [resetFor, setResetFor] = useState<UserSummary | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<UserSummary | null>(null);
-  const [flash, setFlash] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
-  const { showError, reportError } = useErrorDialog();
+  // Failures keep the modal; field validation is inline.
+  const { reportError } = useErrorDialog();
+  const { showToast } = useToast();
+  // Two instances because the two dialogs are separate forms with separate ids.
+  const userForm = useFormErrors("user-form");
+  const resetForm = useFormErrors("reset-form");
 
   const refresh = useCallback(async () => {
     try {
@@ -68,10 +76,12 @@ export function UsersClient({
   }, [reportError]);
 
   function openAdd() {
+    userForm.reset();
     setForm({ ...EMPTY_FORM });
   }
 
   function openEdit(user: UserSummary) {
+    userForm.reset();
     setForm({
       id: user.id,
       full_name: user.full_name,
@@ -82,6 +92,17 @@ export function UsersClient({
       photo_url: user.photo_url,
       status: user.status,
     });
+  }
+
+  function closeForm() {
+    setForm(null);
+    userForm.reset();
+  }
+
+  function closeReset() {
+    setResetFor(null);
+    setNewPassword("");
+    resetForm.reset();
   }
 
   async function save() {
@@ -95,25 +116,20 @@ export function UsersClient({
       photo_url: form.photo_url ?? "",
     };
 
-    // Validate with the very same schema the server uses.
+    // Validated with the very same schema the server uses, and every failing
+    // field is reported at once rather than one per submit.
     const parsed = isEdit
-      ? updateUserSchema.safeParse(base)
-      : createUserSchema.safeParse({
+      ? userForm.validate(updateUserSchema, base)
+      : userForm.validate(createUserSchema, {
           ...base,
           password: form.password,
           role_id: form.role_id,
         });
 
-    if (!parsed.success) {
-      showError(
-        parsed.error.issues[0]?.message ?? "Check the form and try again.",
-        isEdit ? "Could not save user" : "Could not create user",
-      );
-      return;
-    }
+    if (!parsed) return;
 
     // role_id / status travel alongside, and are honoured only for super admins.
-    const payload: Record<string, unknown> = { ...parsed.data };
+    const payload: Record<string, unknown> = { ...parsed };
     if (canManagePrivileges && isEdit) {
       payload.role_id = form.role_id === "" ? null : Number(form.role_id);
       if (form.id !== currentUserId) payload.status = form.status;
@@ -126,10 +142,12 @@ export function UsersClient({
       } else {
         await apiJson("/api/users", "POST", payload);
       }
-      setForm(null);
-      setFlash(isEdit ? "User updated." : "User created.");
+      closeForm();
+      showToast(isEdit ? "User updated." : "User created.");
       await refresh();
     } catch (err) {
+      // A failure from the server keeps the modal — a permission denial or a
+      // duplicate email is not something a field outline can express.
       reportError(err, isEdit ? "Could not save user" : "Could not create user");
     } finally {
       setSaving(false);
@@ -139,9 +157,9 @@ export function UsersClient({
   async function doReset() {
     if (!resetFor) return;
     if (newPassword.length < MIN_PASSWORD_LENGTH) {
-      showError(
+      resetForm.setFieldError(
+        "password",
         `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`,
-        "Could not reset password",
       );
       return;
     }
@@ -149,9 +167,8 @@ export function UsersClient({
       await apiJson(`/api/users/${resetFor.id}/reset-password`, "POST", {
         password: newPassword,
       });
-      setResetFor(null);
-      setNewPassword("");
-      setFlash("Password reset. That user's other sessions were signed out.");
+      closeReset();
+      showToast("Password reset. That user's other sessions were signed out.");
     } catch (err) {
       reportError(err, "Could not reset password");
     }
@@ -159,13 +176,16 @@ export function UsersClient({
 
   async function doDelete() {
     if (!confirmDelete) return;
+    setDeleting(true);
     try {
       await apiJson(`/api/users/${confirmDelete.id}`, "DELETE");
       setConfirmDelete(null);
-      setFlash("User deleted.");
+      showToast("User deleted.");
       await refresh();
     } catch (err) {
       reportError(err, "Could not delete user");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -191,12 +211,6 @@ export function UsersClient({
         </button>
       </div>
 
-      {flash && (
-        <div className="alert success" role="status">
-          {flash}
-        </div>
-      )}
-
       <div className="toolbar">
         <input
           className="search"
@@ -210,7 +224,7 @@ export function UsersClient({
         <span className="muted">{filtered.length} user(s)</span>
       </div>
 
-      <div className="table-wrap">
+      <div className="table-wrap table-cards">
         <table>
             <thead>
               <tr>
@@ -224,7 +238,7 @@ export function UsersClient({
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={5}>
+                  <td colSpan={5} className="cell-empty">
                     <div className="empty-state">
                       <div className="big" aria-hidden="true">
                         👥
@@ -236,7 +250,7 @@ export function UsersClient({
               )}
               {filtered.map((user) => (
                 <tr key={user.id}>
-                  <td>
+                  <td data-label="User">
                     <div className="user-chip">
                       <Avatar
                         src={user.photo_url}
@@ -249,20 +263,20 @@ export function UsersClient({
                       </div>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Contact">
                     <div>{user.email ?? <span className="muted">—</span>}</div>
                     <div className="muted" style={{ fontSize: 12 }}>
                       {user.mobile ?? ""}
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Role">
                     {user.role_name ? (
                       <span className="badge indigo">{user.role_name}</span>
                     ) : (
                       <span className="badge gray">No role</span>
                     )}
                   </td>
-                  <td>
+                  <td data-label="Status">
                     <span
                       className={
                         "badge " + (user.status === "active" ? "green" : "red")
@@ -271,7 +285,7 @@ export function UsersClient({
                       {user.status}
                     </span>
                   </td>
-                  <td>
+                  <td className="cell-actions">
                     <div className="btn-row" style={{ justifyContent: "flex-end" }}>
                       <button
                         type="button"
@@ -285,6 +299,7 @@ export function UsersClient({
                           type="button"
                           className="btn sm"
                           onClick={() => {
+                            resetForm.reset();
                             setResetFor(user);
                             setNewPassword("");
                           }}
@@ -312,14 +327,10 @@ export function UsersClient({
       {form && (
         <Modal
           title={form.id ? "Edit user" : "Add user"}
-          onClose={() => setForm(null)}
+          onClose={closeForm}
           footer={
             <>
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={() => setForm(null)}
-              >
+              <button type="button" className="btn ghost" onClick={closeForm}>
                 Cancel
               </button>
               <button
@@ -333,6 +344,8 @@ export function UsersClient({
             </>
           }
         >
+          {/* Not a Field: PhotoUploader is not a single labelled control and
+              carries no validation state of its own. */}
           <div className="field">
             <label>Profile photo</label>
             <PhotoUploader
@@ -344,87 +357,122 @@ export function UsersClient({
 
           <div className="divider" />
 
-          <div className="field">
-            <label htmlFor="user-name">Full name *</label>
-            <input
-              id="user-name"
-              type="text"
-              value={form.full_name}
-              onChange={(event) =>
-                setForm({ ...form, full_name: event.target.value })
-              }
-              placeholder="Jane Dela Cruz"
-            />
-          </div>
+          <Field
+            formId="user-form"
+            name="full_name"
+            label="Full name"
+            required
+            error={userForm.errors.full_name}
+          >
+            {(control) => (
+              <input
+                {...control}
+                type="text"
+                value={form.full_name}
+                onChange={(event) => {
+                  setForm({ ...form, full_name: event.target.value });
+                  userForm.clearField("full_name");
+                }}
+                placeholder="Jane Dela Cruz"
+              />
+            )}
+          </Field>
 
           <div className="form-grid">
-            <div className="field">
-              <label htmlFor="user-email">Email</label>
-              <input
-                id="user-email"
-                type="email"
-                value={form.email}
-                onChange={(event) =>
-                  setForm({ ...form, email: event.target.value })
-                }
-                placeholder="jane@email.com"
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="user-mobile">Mobile number</label>
-              <input
-                id="user-mobile"
-                type="tel"
-                value={form.mobile}
-                onChange={(event) =>
-                  setForm({ ...form, mobile: event.target.value })
-                }
-                placeholder="09XXXXXXXXX"
-              />
-            </div>
+            <Field
+              formId="user-form"
+              name="email"
+              label="Email"
+              error={userForm.errors.email}
+            >
+              {(control) => (
+                <input
+                  {...control}
+                  type="email"
+                  value={form.email}
+                  onChange={(event) => {
+                    setForm({ ...form, email: event.target.value });
+                    userForm.clearField("email");
+                  }}
+                  placeholder="jane@email.com"
+                />
+              )}
+            </Field>
+            <Field
+              formId="user-form"
+              name="mobile"
+              label="Mobile number"
+              error={userForm.errors.mobile}
+            >
+              {(control) => (
+                <input
+                  {...control}
+                  type="tel"
+                  value={form.mobile}
+                  onChange={(event) => {
+                    setForm({ ...form, mobile: event.target.value });
+                    userForm.clearField("mobile");
+                  }}
+                  placeholder="09XXXXXXXXX"
+                />
+              )}
+            </Field>
           </div>
 
           {canManagePrivileges ? (
             <div className="form-grid">
-              <div className="field">
-                <label htmlFor="user-role">Role group</label>
-                <select
-                  id="user-role"
-                  value={form.role_id}
-                  onChange={(event) =>
-                    setForm({ ...form, role_id: event.target.value })
-                  }
-                >
-                  <option value="">— No role —</option>
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      {role.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="field">
-                <label htmlFor="user-status">Status</label>
-                <select
-                  id="user-status"
-                  value={form.status}
-                  disabled={form.id === currentUserId}
-                  onChange={(event) =>
-                    setForm({
-                      ...form,
-                      status: event.target.value as UserStatus,
-                    })
-                  }
-                >
-                  <option value="active">Active</option>
-                  <option value="disabled">Disabled</option>
-                </select>
-                {form.id === currentUserId && (
-                  <div className="hint">
-                    You cannot change your own role or status.
-                  </div>
+              <Field
+                formId="user-form"
+                name="role_id"
+                label="Role group"
+                error={userForm.errors.role_id}
+              >
+                {(control) => (
+                  <select
+                    {...control}
+                    value={form.role_id}
+                    onChange={(event) => {
+                      setForm({ ...form, role_id: event.target.value });
+                      userForm.clearField("role_id");
+                    }}
+                  >
+                    <option value="">— No role —</option>
+                    {roles.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </select>
                 )}
-              </div>
+              </Field>
+              <Field
+                formId="user-form"
+                name="status"
+                label="Status"
+                error={userForm.errors.status}
+                hint={
+                  form.id === currentUserId
+                    ? "You cannot change your own role or status."
+                    : undefined
+                }
+              >
+                {(control) => (
+                  <select
+                    {...control}
+                    value={form.status}
+                    disabled={form.id === currentUserId}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        status: event.target.value as UserStatus,
+                      })
+                    }
+                  >
+                    <option value="active">Active</option>
+                    <option value="disabled">Disabled</option>
+                  </select>
+                )}
+              </Field>
             </div>
           ) : (
             <div className="alert info">
@@ -433,22 +481,28 @@ export function UsersClient({
           )}
 
           {!form.id && (
-            <div className="field">
-              <label htmlFor="user-password">Password *</label>
-              <input
-                id="user-password"
-                type="password"
-                autoComplete="new-password"
-                value={form.password}
-                onChange={(event) =>
-                  setForm({ ...form, password: event.target.value })
-                }
-                placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
-              />
-              <div className="hint">
-                The user signs in with their email or mobile plus this password.
-              </div>
-            </div>
+            <Field
+              formId="user-form"
+              name="password"
+              label="Password"
+              required
+              error={userForm.errors.password}
+              hint="The user signs in with their email or mobile plus this password."
+            >
+              {(control) => (
+                <input
+                  {...control}
+                  type="password"
+                  autoComplete="new-password"
+                  value={form.password}
+                  onChange={(event) => {
+                    setForm({ ...form, password: event.target.value });
+                    userForm.clearField("password");
+                  }}
+                  placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
+                />
+              )}
+            </Field>
           )}
         </Modal>
       )}
@@ -456,14 +510,10 @@ export function UsersClient({
       {resetFor && (
         <Modal
           title={`Reset password — ${resetFor.full_name}`}
-          onClose={() => setResetFor(null)}
+          onClose={closeReset}
           footer={
             <>
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={() => setResetFor(null)}
-              >
+              <button type="button" className="btn ghost" onClick={closeReset}>
                 Cancel
               </button>
               <button type="button" className="btn primary" onClick={doReset}>
@@ -472,20 +522,26 @@ export function UsersClient({
             </>
           }
         >
-          <div className="field">
-            <label htmlFor="reset-password">New password</label>
-            <input
-              id="reset-password"
-              type="text"
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-              placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
-            />
-            <div className="hint">
-              Share this securely. All of that user&apos;s existing sessions are
-              signed out, and they can change it from their profile.
-            </div>
-          </div>
+          <Field
+            formId="reset-form"
+            name="password"
+            label="New password"
+            error={resetForm.errors.password}
+            hint="Share this securely. All of that user's existing sessions are signed out, and they can change it from their profile."
+          >
+            {(control) => (
+              <input
+                {...control}
+                type="text"
+                value={newPassword}
+                onChange={(event) => {
+                  setNewPassword(event.target.value);
+                  resetForm.clearField("password");
+                }}
+                placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
+              />
+            )}
+          </Field>
         </Modal>
       )}
 
@@ -503,8 +559,13 @@ export function UsersClient({
               >
                 Cancel
               </button>
-              <button type="button" className="btn danger" onClick={doDelete}>
-                Delete permanently
+              <button
+                type="button"
+                className="btn danger"
+                onClick={doDelete}
+                disabled={deleting}
+              >
+                {deleting ? "Deleting…" : "Delete permanently"}
               </button>
             </>
           }
