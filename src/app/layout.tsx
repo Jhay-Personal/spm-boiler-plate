@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import "./globals.css";
 import { ThemeProvider } from "@/features/theme/ThemeProvider";
 import { ErrorDialogProvider } from "@/components/ui/ErrorDialogProvider";
+import { ToastProvider } from "@/components/ui/ToastProvider";
 import { THEME_INIT_SCRIPT } from "@/features/theme/theme";
 
 export const metadata: Metadata = {
@@ -46,7 +47,9 @@ export default async function RootLayout({
       </head>
       <body>
         <ThemeProvider>
-          <ErrorDialogProvider>{children}</ErrorDialogProvider>
+          <ErrorDialogProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </ErrorDialogProvider>
         </ThemeProvider>
       </body>
     </html>

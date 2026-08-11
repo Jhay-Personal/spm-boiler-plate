@@ -29,7 +29,14 @@ export const initialToastState: ToastState = { toasts: [], nextId: 1 };
 export type ToastAction =
   | { type: "add"; message: string; tone: ToastTone; now: number }
   | { type: "dismiss"; id: number }
-  | { type: "expire"; now: number };
+  | { type: "expire"; now: number }
+  /**
+   * Hovering pauses the countdown. Deadlines are absolute, so resuming has to
+   * push every one forward by however long the pointer rested there — without
+   * this, a toast held for ten seconds would vanish the moment you moved away,
+   * which is the opposite of what pausing is for.
+   */
+  | { type: "resume"; heldForMs: number };
 
 export function toastReducer(state: ToastState, action: ToastAction): ToastState {
   switch (action.type) {
@@ -54,6 +61,16 @@ export function toastReducer(state: ToastState, action: ToastAction): ToastState
     case "expire": {
       const toasts = state.toasts.filter((t) => t.expiresAt > action.now);
       return toasts.length === state.toasts.length ? state : { ...state, toasts };
+    }
+    case "resume": {
+      if (action.heldForMs <= 0 || state.toasts.length === 0) return state;
+      return {
+        ...state,
+        toasts: state.toasts.map((t) => ({
+          ...t,
+          expiresAt: t.expiresAt + action.heldForMs,
+        })),
+      };
     }
   }
 }

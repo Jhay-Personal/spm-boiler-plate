@@ -45,6 +45,7 @@
   --overlay: rgba(15, 23, 42, 0.4);
   --link: #4338ca;
   --login-glow: rgba(79, 70, 229, 0.14);
+  --toast-accent: #15803d;
 
   --radius: 12px;
   --radius-sm: 8px;
@@ -83,6 +84,7 @@
     --overlay: rgba(0, 0, 0, 0.6);
     --link: #a5b4fc;
     --login-glow: rgba(99, 102, 241, 0.18);
+    --toast-accent: #86efac;
 
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   }
@@ -118,6 +120,7 @@
   --overlay: rgba(0, 0, 0, 0.6);
   --link: #a5b4fc;
   --login-glow: rgba(99, 102, 241, 0.18);
+  --toast-accent: #86efac;
 
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
@@ -1096,5 +1099,79 @@ code {
     inset: 0;
     z-index: 35;
     background: var(--overlay);
+  }
+}
+
+/* ---------- Toasts ---------- */
+.toast-region {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(360px, calc(100vw - 40px));
+  /* The region is always mounted so the live region is stable; without this it
+     would swallow clicks on whatever sits beneath it. */
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--toast-accent);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  animation: toast-in 0.18s ease;
+}
+
+.toast.info {
+  border-left-color: var(--info-text);
+}
+
+.toast-message {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-dismiss {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.toast-dismiss:hover {
+  color: var(--text);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .toast-region {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
   }
 }

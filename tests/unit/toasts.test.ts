@@ -51,4 +51,24 @@ describe("toastReducer", () => {
     const state = add(initialToastState, "still fresh", 1_000);
     expect(toastReducer(state, { type: "expire", now: 1_500 })).toBe(state);
   });
+
+  it("pushes deadlines forward by however long the stack was held", () => {
+    const state = add(initialToastState, "hovered", 1_000);
+    const resumed = toastReducer(state, { type: "resume", heldForMs: 10_000 });
+
+    // Without the shift this toast would already be past its deadline, and
+    // would disappear the instant the pointer left it.
+    expect(resumed.toasts[0]?.expiresAt).toBe(1_000 + TOAST_DURATION_MS + 10_000);
+    expect(toastReducer(resumed, { type: "expire", now: 12_000 }).toasts).toHaveLength(
+      1,
+    );
+  });
+
+  it("ignores a resume that held for no time and one with nothing queued", () => {
+    const state = add(initialToastState, "a", 1_000);
+    expect(toastReducer(state, { type: "resume", heldForMs: 0 })).toBe(state);
+    expect(
+      toastReducer(initialToastState, { type: "resume", heldForMs: 500 }),
+    ).toBe(initialToastState);
+  });
 });
