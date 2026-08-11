@@ -218,10 +218,14 @@ Each feature's `queries.ts` is shared by its page (server render) and its API ro
 
 Three modes — light, dark, and system — from the toggle in the topbar and on the login page.
 
+- Colours are `oklch()`, derived from three seeds declared once on `:root`.
+- **To rebrand, change `--accent-h`.** One number, both themes, everything downstream — buttons, links, focus rings, the active nav item, the brand mark.
+- `--neutral-c` controls how much of the accent hue bleeds into the greys; set it to `0` for neutral greys. Neutrals follow their own `--neutral-h`, so a warm accent can keep cool greys.
+- Run `npm run test:e2e` afterwards. `contrast.spec.ts` fails the build if a palette edit drops a pair below WCAG AA. (Rotating the hue alone is safe by construction — oklch holds lightness constant across hues.)
 - The preference is stored in `localStorage` under `admin-portal-theme`.
 - An inline script in the root layout applies it **before first paint**, so there is no white flash on load. It carries the CSP nonce.
 - "System" stores no `data-theme` attribute at all, leaving the `prefers-color-scheme` media query in charge — and it tracks OS changes live via `matchMedia`.
-- Every colour resolves through a CSS custom property in `src/app/globals.css`. Restyling means editing the token blocks, not hunting for hex values.
+- Every colour resolves through a CSS custom property in `src/app/globals.css`. Typography is a six-step scale; icons are a hand-authored SVG set in `src/components/icons/`, with no dependency and no emoji.
 
 The layout is mobile-first: below 900px the sidebar becomes an off-canvas drawer, tables scroll horizontally inside their container, and inputs use a 16px font so iOS Safari doesn't zoom on focus.
 
