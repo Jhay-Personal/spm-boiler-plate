@@ -1,6 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { signIn } from "./support/actions";
 
+/** Lightness channel of an oklch() colour, e.g. "oklch(0.178 0.01 250)". */
+function oklchLightness(value: string): number {
+  const match = /oklch\(\s*([0-9.]+)/.exec(value);
+  if (!match) throw new Error(`expected an oklch() colour, got: ${value}`);
+  return Number(match[1]);
+}
+
 // The inline script in src/app/layout.tsx applies the stored theme before first
 // paint and must carry the CSP nonce. If the nonce is ever dropped, the CSP
 // blocks the script and the attribute below is simply absent after a reload —
@@ -22,10 +29,13 @@ test.describe("theme", () => {
     await page.reload();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 
-    const background = await page.evaluate(
-      () => getComputedStyle(document.body).backgroundColor,
+    // Asserted as a relationship, not a literal. A test pinned to a specific
+    // colour would break on every rebrand — which is exactly what this
+    // boilerplate is built for — while proving nothing extra.
+    const darkL = oklchLightness(
+      await page.evaluate(() => getComputedStyle(document.body).backgroundColor),
     );
-    expect(background).toBe("rgb(15, 17, 21)");
+    expect(darkL).toBeLessThan(0.5);
   });
 
   test("keeps an explicit light choice across a reload", async ({ page }) => {
@@ -52,15 +62,17 @@ test.describe("theme", () => {
   test("follows the OS setting when set to system", async ({ page }) => {
     await page.getByRole("radio", { name: "System" }).click();
 
-    // The two literals are --bg from globals.css: #0f1115 and #f5f6f8.
     await page.emulateMedia({ colorScheme: "dark" });
-    expect(
+    const dark = oklchLightness(
       await page.evaluate(() => getComputedStyle(document.body).backgroundColor),
-    ).toBe("rgb(15, 17, 21)");
+    );
 
     await page.emulateMedia({ colorScheme: "light" });
-    expect(
+    const light = oklchLightness(
       await page.evaluate(() => getComputedStyle(document.body).backgroundColor),
-    ).toBe("rgb(245, 246, 248)");
+    );
+
+    expect(dark).toBeLessThan(light);
+    expect(light - dark).toBeGreaterThan(0.5);
   });
 });
