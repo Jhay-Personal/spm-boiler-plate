@@ -98,9 +98,25 @@ Three seeds drive every colour:
 }
 ```
 
-Semantic tokens derive from the seeds through `oklch()`. The two dark blocks
-shrink from ~25 duplicated declarations each to only those that genuinely
-differ, which retires most of the drift hazard the file warns about.
+Semantic tokens derive from the seeds through `oklch()`. The seeds are declared
+**once**, on bare `:root`, and are never overridden per theme — which is what
+makes a rebrand a single edit that reaches both themes.
+
+**On the dark blocks:** an earlier draft of this spec claimed they would shrink
+to a handful of seed overrides. That was wrong, and is corrected here. Dark is
+not a hue shift — its lightness values genuinely differ per token, so they
+cannot derive from a seed, and CSS cannot share one declaration list between a
+media query and an attribute selector. The duplication is therefore
+*unavoidable*, and the honest fix is not a syntax trick but enforcement:
+
+> A **dark-parity test** asserts that the two routes into dark mode —
+> `prefers-color-scheme: dark` with no attribute, and `data-theme="dark"` —
+> compute to identical values for every token.
+
+That converts the file's standing "these must stay in sync" comment from a
+warning a reader may ignore into a failing build. It is strictly better than
+shrinking the blocks, because it catches drift that shorter blocks would still
+allow.
 
 Why oklch rather than HSL: its lightness channel is perceptually even, so the
 same L reads as the same brightness at any hue. That is what lets the soft and
@@ -315,7 +331,10 @@ since the contrast suite asserts against the new tokens.
    other edit.
 3. `contrast.spec.ts` passes in both themes, and fails if `--accent-h` is set to
    a value that breaks a pair.
-4. No emoji remain in `src/`; every icon inherits `currentColor`.
-5. At most 6 font sizes are declared, plus the 16px mobile input guard.
-6. `npm run verify` passes: typecheck, lint, 219 unit, build, 135 API, and 22+
+4. The dark-parity test passes, and fails if the two dark blocks are edited
+   apart — making the file's "must stay in sync" comment enforced rather than
+   advisory.
+5. No emoji remain in `src/`; every icon inherits `currentColor`.
+6. At most 6 font sizes are declared, plus the 16px mobile input guard.
+7. `npm run verify` passes: typecheck, lint, 219 unit, build, 135 API, and 22+
    browser tests.
