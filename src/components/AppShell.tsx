@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import Avatar from "./ui/Avatar";
 import { useErrorDialog } from "./ui/ErrorDialogProvider";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
@@ -15,6 +15,15 @@ type AppShellProps = {
   nav: ModuleDefinition[];
   children: React.ReactNode;
 };
+
+/**
+ * Pending dot for the link being navigated to. `useLinkStatus` reports the
+ * transition of its nearest ancestor Link, so this must be rendered inside one.
+ */
+function NavPending() {
+  const { pending } = useLinkStatus();
+  return pending ? <span className="nav-pending" aria-hidden="true" /> : null;
+}
 
 export default function AppShell({ user, nav, children }: AppShellProps) {
   const pathname = usePathname();
@@ -78,7 +87,8 @@ export default function AppShell({ user, nav, children }: AppShellProps) {
                 <span className="nav-ico" aria-hidden="true">
                   {m.icon}
                 </span>
-                <span>{m.label}</span>
+                <span className="nav-label">{m.label}</span>
+                <NavPending />
               </Link>
             );
           })}
