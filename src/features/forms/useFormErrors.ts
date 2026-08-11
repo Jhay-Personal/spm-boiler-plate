@@ -19,9 +19,26 @@ import {
  * Focusing by issue order would skip the user past a visible error.
  */
 function focusFirstError(formId: string, errors: FieldErrors): void {
-  const elements = Object.keys(errors)
+  const names = Object.keys(errors);
+  const elements = names
     .map((name) => document.getElementById(fieldElementId(formId, name)))
     .filter((element): element is HTMLElement => element !== null);
+
+  // An error with no field on screen is a dead end for the user: the submit is
+  // refused and nothing says why. It happens when a schema adds an issue with
+  // no `path` (which buckets to FORM_LEVEL_KEY), or when a Field's `name` does
+  // not match the schema's key. Both are silent in production and easy to miss
+  // in review, so say so loudly while developing.
+  if (process.env.NODE_ENV !== "production" && elements.length < names.length) {
+    const orphaned = names.filter(
+      (name) => !document.getElementById(fieldElementId(formId, name)),
+    );
+    console.warn(
+      `[useFormErrors] Form "${formId}" rejected these fields, but no matching ` +
+        `control is rendered, so the user sees no message: ${orphaned.join(", ")}. ` +
+        `Check that a <Field name="…"> matches each schema key.`,
+    );
+  }
 
   if (elements.length === 0) return;
 
