@@ -119,7 +119,7 @@ Deliberate, and worth knowing before you deploy this:
 - **CSRF protection relies on `SameSite=Lax`** plus the JSON content-type requirement. There is no CSRF token. Adequate today; revisit before serving the app from a shared parent domain.
 - **`x-forwarded-for` is trusted** for the IP rate-limit key. Spoofing it does not buy unlimited guesses — the per-identifier limit is independent — but put a proxy that overwrites the header in front of this.
 - **No audit log table.** Privileged actions are logged to stdout, not recorded in the database.
-- **No browser-level (end-to-end) tests.** The API surface is covered thoroughly; the React components are not driven by an automated test.
+- **No visual-regression tests.** The browser suite asserts on behaviour — focus containment, layout mode, theme attributes — not on pixels. A restyle that keeps the behaviour intact will not be caught here.
 
 ---
 
@@ -128,7 +128,8 @@ Deliberate, and worth knowing before you deploy this:
 ```bash
 npm run test          # unit tests — fast, no database needed
 npm run test:api      # integration tests — needs Postgres + a build
-npm run verify        # typecheck → lint → unit → build → integration
+npm run test:e2e      # browser tests — needs Postgres + a build + Chromium
+npm run verify        # typecheck → lint → unit → build → integration → browser
 ```
 
 **Unit tests** ([tests/unit/](tests/unit/)) cover the pure logic the security model rests on: module/role resolution in `allowedModules` and `canAccess`, every Zod field schema, magic-byte image sniffing and stored-filename validation, the rate-limiter windows, and the logger's redaction rules. They need no services and run on a clean checkout.
@@ -155,6 +156,19 @@ What the integration suite asserts, grouped by the failure each part prevents:
 | [auth.test.ts](tests/api/auth.test.ts) | Sign-in, cookie attributes, user-enumeration parity, forged / tampered / `alg:none` tokens, and all four session-revocation paths. |
 | [uploads.test.ts](tests/api/uploads.test.ts) | Magic-byte sniffing vs. spoofed `Content-Type` and filenames, size and traversal limits, authenticated serving, and `photo_url` restriction. |
 | [contract.test.ts](tests/api/contract.test.ts) | Response envelope, validation and conflict handling, security headers, CSP nonce freshness and coverage, and both rate limiters. |
+
+**Browser tests** ([tests/e2e/](tests/e2e/)) drive Chromium against the same kind of real server. They cover only what genuinely needs a browser, and deliberately do not repeat what the API suite already proves:
+
+| File | Covers |
+|---|---|
+| [validation.spec.ts](tests/e2e/validation.spec.ts) | Every failing field reported on one submit, the first focused, messages clearing as they are fixed — and that a server-side conflict still opens the modal instead. |
+| [modal.spec.ts](tests/e2e/modal.spec.ts) | Tab and Shift+Tab held inside the dialog, focus returned to the trigger on close, and a text selection dragged out of the dialog *not* discarding the form. |
+| [toast.spec.ts](tests/e2e/toast.spec.ts) | A confirmation appearing, dismissing itself, and dismissing by hand. |
+| [mobile.spec.ts](tests/e2e/mobile.spec.ts) | The drawer opening and closing, and tables reading as cards with no sideways scroll. |
+| [theme.spec.ts](tests/e2e/theme.spec.ts) | All three modes surviving a reload — which is also the only automated check that the pre-paint theme script still carries its CSP nonce. |
+| [auth.spec.ts](tests/e2e/auth.spec.ts) | Sign-in, rejection, and the signed-out redirect, through a real browser. |
+
+The two integration suites share one harness ([tests/support/server.ts](tests/support/server.ts)) and both drop `admin_users` and `roles`. They use different ports (3311 and 3312), but **must not run concurrently against the same database** — set `E2E_DATABASE_URL` to separate them, or rely on `npm run verify` running them in sequence.
 
 Each `TestClient` sends a distinct `x-forwarded-for`, so it models a separate browser. That is what lets the throttling tests prove the per-identifier limit holds even when an attacker rotates source IPs.
 
@@ -237,5 +251,6 @@ The sidebar and the Role Management checkboxes pick it up automatically. Step 2 
 | `npm run test:watch` | Unit tests in watch mode |
 | `npm run test:coverage` | Unit tests with a coverage summary |
 | `npm run test:api` | Integration tests (needs Postgres + a build) |
-| `npm run verify` | Everything: typecheck, lint, unit, build, integration |
+| `npm run test:e2e` | Browser tests (needs Postgres + a build + Chromium) |
+| `npm run verify` | Everything: typecheck, lint, unit, build, integration, browser |
 | `npm run init-db` | Apply schema + ensure the first admin exists (idempotent) |
