@@ -48,7 +48,7 @@ export function DashboardClient({ userName, stats }: DashboardClientProps) {
     <div>
       <div className="page-head">
         <div>
-          <h2 style={{ fontSize: 20 }}>Welcome back, {userName.split(" ")[0]}</h2>
+          <h2 className="page-title">Welcome back, {userName.split(" ")[0]}</h2>
           <p>An overview of the accounts and access groups in this portal.</p>
         </div>
       </div>

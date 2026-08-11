@@ -203,7 +203,7 @@ export function UsersClient({
     <div>
       <div className="page-head">
         <div>
-          <h2 style={{ fontSize: 20 }}>User Management</h2>
+          <h2 className="page-title">User Management</h2>
           <p>Create sign-in accounts, assign roles, and reset passwords.</p>
         </div>
         <button type="button" className="btn primary" onClick={openAdd}>
@@ -265,7 +265,7 @@ export function UsersClient({
                   </td>
                   <td data-label="Contact">
                     <div>{user.email ?? <span className="muted">—</span>}</div>
-                    <div className="muted" style={{ fontSize: 12 }}>
+                    <div className="meta">
                       {user.mobile ?? ""}
                     </div>
                   </td>

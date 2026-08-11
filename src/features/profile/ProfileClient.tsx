@@ -88,7 +88,7 @@ export function ProfileClient({ user }: { user: CurrentUser }) {
     <div>
       <div className="page-head">
         <div>
-          <h2 style={{ fontSize: 20 }}>Profile Management</h2>
+          <h2 className="page-title">Profile Management</h2>
           <p>Update your own details, photo, and password.</p>
         </div>
         {user.role && <span className="badge indigo">{user.role.name}</span>}

@@ -79,6 +79,24 @@
   --shadow-md: 0 4px 12px oklch(0.24 0.02 var(--neutral-h) / 0.1);
   --shadow-lg: 0 10px 30px oklch(0.24 0.02 var(--neutral-h) / 0.13);
   --sidebar-w: 250px;
+
+  /* ---- Type scale ----
+     Six steps, replacing fifteen ad-hoc sizes. Tracking tightens as size
+     grows, which is what stops large text looking loose. The only literal
+     font-size left in this file is the 16px input override under 620px,
+     which stops iOS Safari zooming on focus. */
+  --text-display: 1.75rem;
+  --text-title: 1.25rem;
+  --text-heading: 1.0625rem;
+  --text-body: 0.875rem;
+  --text-label: 0.75rem;
+  --text-micro: 0.6875rem;
+
+  --track-display: -0.02em;
+  --track-title: -0.01em;
+  --track-heading: -0.005em;
+  --track-label: 0.01em;
+  --track-micro: 0.04em;
 }
 
 /* "System" — no data-theme attribute, so the OS decides. */
@@ -175,7 +193,7 @@ body {
   color: var(--text);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
-  font-size: 14px;
+  font-size: var(--text-body);
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
 }
@@ -243,17 +261,17 @@ h3 {
   place-items: center;
   font-weight: 800;
   color: var(--on-accent);
-  font-size: 14px;
+  font-size: var(--text-label);
   flex-shrink: 0;
 }
 
 .brand-name {
   font-weight: 700;
-  font-size: 15px;
+  font-size: var(--text-body);
 }
 
 .brand-sub {
-  font-size: 11px;
+  font-size: var(--text-micro);
   color: var(--muted);
 }
 
@@ -267,8 +285,8 @@ h3 {
 }
 
 .nav-section {
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
+  font-size: var(--text-micro);
+  letter-spacing: var(--track-micro);
   text-transform: uppercase;
   color: var(--muted);
   padding: 14px 12px 6px;
@@ -297,8 +315,10 @@ h3 {
 
 .nav-link .nav-ico {
   width: 18px;
-  text-align: center;
-  font-size: 15px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
 }
 
 .sidebar-foot {
@@ -328,7 +348,8 @@ h3 {
 }
 
 .topbar h1 {
-  font-size: 17px;
+  font-size: var(--text-heading);
+  letter-spacing: var(--track-heading);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -343,7 +364,7 @@ h3 {
 }
 
 .topbar-identity {
-  font-size: 12px;
+  font-size: var(--text-label);
   color: var(--muted);
   max-width: 220px;
   overflow: hidden;
@@ -357,7 +378,7 @@ h3 {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 17px;
+  font-size: var(--text-heading);
   line-height: 1;
   padding: 7px 10px;
   cursor: pointer;
@@ -388,7 +409,7 @@ h3 {
   border-radius: 999px;
   background: transparent;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-label);
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -446,14 +467,14 @@ h3 {
 
 .user-chip .um-name {
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--text-body);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .user-chip .um-role {
-  font-size: 11px;
+  font-size: var(--text-micro);
   color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -477,7 +498,8 @@ h3 {
 }
 
 .card-title {
-  font-size: 15px;
+  font-size: var(--text-heading);
+  letter-spacing: var(--track-heading);
   font-weight: 650;
 }
 
@@ -523,21 +545,23 @@ h3 {
 
 .stat .label {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-label);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .stat .value {
-  font-size: 28px;
-  font-weight: 750;
+  font-size: var(--text-display);
+  font-weight: 700;
   margin-top: 8px;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--track-display);
+  /* Figures line up down a column and do not jitter as they change. */
+  font-variant-numeric: tabular-nums;
 }
 
 .stat .sub {
-  font-size: 12px;
+  font-size: var(--text-label);
   color: var(--muted);
   margin-top: 4px;
 }
@@ -548,7 +572,6 @@ h3 {
   border-radius: 8px;
   display: grid;
   place-items: center;
-  font-size: 15px;
   flex-shrink: 0;
 }
 
@@ -572,7 +595,8 @@ h3 {
   gap: 6px;
   padding: 3px 9px;
   border-radius: 999px;
-  font-size: 11.5px;
+  font-size: var(--text-micro);
+  letter-spacing: var(--track-micro);
   font-weight: 600;
   border: 1px solid transparent;
   white-space: nowrap;
@@ -615,7 +639,8 @@ h3 {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--text-body);
+  font-variant-numeric: tabular-nums;
 }
 
 thead th {
@@ -623,9 +648,9 @@ thead th {
   padding: 12px 16px;
   color: var(--muted);
   font-weight: 600;
-  font-size: 11.5px;
+  font-size: var(--text-micro);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--track-micro);
   background: var(--surface-2);
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
@@ -656,7 +681,7 @@ tbody tr:hover {
   background: var(--surface-2);
   color: var(--text);
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--text-body);
   font-family: inherit;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, opacity 0.15s;
@@ -692,7 +717,7 @@ tbody tr:hover {
 
 .btn.sm {
   padding: 6px 11px;
-  font-size: 12px;
+  font-size: var(--text-label);
 }
 
 .btn:disabled {
@@ -713,14 +738,15 @@ tbody tr:hover {
 
 .field label {
   display: block;
-  font-size: 12.5px;
+  font-size: var(--text-label);
+  letter-spacing: var(--track-label);
   font-weight: 600;
   margin-bottom: 7px;
   color: var(--text);
 }
 
 .field .hint {
-  font-size: 11.5px;
+  font-size: var(--text-micro);
   color: var(--muted);
   margin-top: 6px;
 }
@@ -739,7 +765,7 @@ textarea {
   background: var(--bg);
   color: var(--text);
   /* 16px on small screens stops iOS Safari zooming in on focus. */
-  font-size: 13.5px;
+  font-size: var(--text-body);
   font-family: inherit;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -783,7 +809,7 @@ select:disabled {
 }
 
 .field-error {
-  font-size: 11.5px;
+  font-size: var(--text-micro);
   font-weight: 600;
   color: var(--danger-text);
   margin-top: 6px;
@@ -844,11 +870,11 @@ select:disabled {
 
 .check-item .ci-label {
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--text-body);
 }
 
 .check-item .ci-key {
-  font-size: 11px;
+  font-size: var(--text-micro);
   color: var(--muted);
 }
 
@@ -873,14 +899,14 @@ select:disabled {
   display: grid;
   place-items: center;
   color: var(--muted);
-  font-size: 22px;
+  font-size: var(--text-title);
 }
 
 /* ---------- Alerts ---------- */
 .alert {
   padding: 11px 14px;
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: var(--text-body);
   margin-bottom: 16px;
   border: 1px solid transparent;
 }
@@ -957,10 +983,22 @@ select:disabled {
   flex-wrap: wrap;
 }
 
+.page-title {
+  font-size: var(--text-title);
+  letter-spacing: var(--track-title);
+  font-weight: 650;
+}
+
+/* Secondary detail line inside a card or table cell. */
+.meta {
+  font-size: var(--text-label);
+  color: var(--muted);
+}
+
 .page-head p {
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--text-body);
 }
 
 .toolbar {
@@ -986,7 +1024,7 @@ select:disabled {
 }
 
 .empty-state .big {
-  font-size: 32px;
+  font-size: var(--text-display);
   margin-bottom: 8px;
 }
 
@@ -1069,7 +1107,8 @@ select:disabled {
 }
 
 .modal-head h3 {
-  font-size: 16px;
+  font-size: var(--text-heading);
+  letter-spacing: var(--track-heading);
 }
 
 .modal-body {
@@ -1078,7 +1117,7 @@ select:disabled {
 
 .modal-message {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--text-body);
   line-height: 1.6;
 }
 
@@ -1107,7 +1146,7 @@ select:disabled {
   background: transparent;
   border: none;
   color: var(--muted);
-  font-size: 20px;
+  font-size: var(--text-title);
   cursor: pointer;
   line-height: 1;
   padding: 4px 8px;
@@ -1120,7 +1159,7 @@ code {
   background: var(--surface-2);
   padding: 1px 6px;
   border-radius: 5px;
-  font-size: 12px;
+  font-size: var(--text-label);
 }
 
 /* ===========================================================================
@@ -1193,7 +1232,7 @@ code {
   border-left: 3px solid var(--toast-accent);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-md);
-  font-size: 13px;
+  font-size: var(--text-body);
   animation: toast-in 0.18s ease;
 }
 
@@ -1210,7 +1249,7 @@ code {
   background: transparent;
   border: none;
   color: var(--muted);
-  font-size: 17px;
+  font-size: var(--text-heading);
   line-height: 1;
   padding: 0 2px;
   cursor: pointer;
@@ -1302,7 +1341,7 @@ code {
   .table-cards tbody td::before {
     content: attr(data-label);
     color: var(--muted);
-    font-size: 11px;
+    font-size: var(--text-micro);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;

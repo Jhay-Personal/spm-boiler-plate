@@ -131,7 +131,7 @@ export function RolesClient({ initialRoles }: { initialRoles: RoleSummary[] }) {
     <div>
       <div className="page-head">
         <div>
-          <h2 style={{ fontSize: 20 }}>Role Management</h2>
+          <h2 className="page-title">Role Management</h2>
           <p>Create a group and select the modules it can access.</p>
         </div>
         <button
@@ -163,7 +163,7 @@ export function RolesClient({ initialRoles }: { initialRoles: RoleSummary[] }) {
                     {role.name}{" "}
                     {role.is_super && <span className="badge indigo">Super</span>}
                   </div>
-                  <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+                  <div className="meta" style={{ marginTop: 2 }}>
                     {role.description ?? "No description"}
                   </div>
                 </div>
@@ -172,7 +172,7 @@ export function RolesClient({ initialRoles }: { initialRoles: RoleSummary[] }) {
 
               <div className="list-inline" style={{ marginBottom: 16 }}>
                 {moduleLabels(role).length === 0 ? (
-                  <span className="muted" style={{ fontSize: 12 }}>
+                  <span className="meta">
                     No modules selected
                   </span>
                 ) : (
