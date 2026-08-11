@@ -29,6 +29,7 @@ export default defineConfig({
         "src/lib/modules.ts",
         "src/lib/validation.ts",
         "src/lib/form-errors.ts",
+        "src/lib/toasts.ts",
         "src/lib/uploads.ts",
         "src/lib/rate-limit.ts",
         "src/lib/logger.ts",
