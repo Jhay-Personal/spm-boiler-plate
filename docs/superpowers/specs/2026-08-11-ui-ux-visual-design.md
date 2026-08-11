@@ -274,12 +274,24 @@ asserts WCAG AA on the pairs that matter, in **both** themes:
 | `--primary-text` on `--primary-soft` over `--surface` | 4.5:1 |
 | all six badge variants — `green`, `amber`, `red`, `blue`, `gray`, `indigo` — text on their own soft background over `--surface` | 4.5:1 |
 | `--field-error` text on `--surface` | 4.5:1 |
-| `--border` on `--surface` | 3:1 |
+| `--border-strong` on `--surface` and on `--bg` | 3:1 |
+| `--border` (decorative) on `--surface` | 1.2:1 visibility floor |
 
-This is the test that makes the rebrand knob safe. A fork setting
-`--accent-h: 60` and quietly ending up with white-on-yellow buttons gets a
-failing build rather than an accessibility complaint. It also converts "contrast
-was checked once, by eye" into a standing guarantee.
+**Corrected after building it.** An earlier draft claimed this suite protects
+against a fork setting `--accent-h: 60` and ending up with white-on-yellow
+buttons. That cannot happen: oklch holds lightness constant across hues, so
+rotating the accent hue alone *cannot* change a contrast ratio — verified by
+setting `--accent-h: 95` and watching every pair still pass. That is a property
+worth stating plainly, because it means **rebranding by hue is safe by
+construction**, not merely tested.
+
+What the suite actually protects, each verified by deliberately breaking it:
+
+- any edit to a lightness value (raising `--muted` to 0.75 fails three pairs)
+- a change to `--on-accent`, or to an accent chroma that clips out of sRGB gamut
+- drift between the two dark blocks (the parity test)
+
+It converts "contrast was checked once, by eye" into a standing guarantee.
 
 Alpha-composited pairs (`--primary-soft`, badge softs) are sampled *as rendered
 over their parent surface*, not as their declared rgba, so the ratio reflects
@@ -329,8 +341,8 @@ since the contrast suite asserts against the new tokens.
    the file's header comment true for the first time.
 2. Changing `--accent-h` alone visibly rebrands the app in both themes, with no
    other edit.
-3. `contrast.spec.ts` passes in both themes, and fails if `--accent-h` is set to
-   a value that breaks a pair.
+3. `contrast.spec.ts` passes in both themes, and fails if any lightness value
+   regresses.
 4. The dark-parity test passes, and fails if the two dark blocks are edited
    apart — making the file's "must stay in sync" comment enforced rather than
    advisory.

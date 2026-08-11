@@ -32,6 +32,10 @@
   --surface: oklch(1 0 0);
   --surface-2: oklch(0.962 calc(var(--neutral-c) * 0.6) var(--neutral-h));
   --border: oklch(0.912 calc(var(--neutral-c) * 0.9) var(--neutral-h));
+  /* Boundary of a form control. WCAG 1.4.11 wants 3:1 for anything that
+     identifies a UI component, which a decorative card separator is not —
+     hence two tokens rather than one harsh compromise. */
+  --border-strong: oklch(0.58 calc(var(--neutral-c) * 1.6) var(--neutral-h));
   --text: oklch(0.24 calc(var(--neutral-c) * 1.9) var(--neutral-h));
   --muted: oklch(0.53 calc(var(--neutral-c) * 2) var(--neutral-h));
 
@@ -84,6 +88,7 @@
     --surface: oklch(0.218 calc(var(--neutral-c) * 1.5) var(--neutral-h));
     --surface-2: oklch(0.262 calc(var(--neutral-c) * 1.6) var(--neutral-h));
     --border: oklch(0.322 calc(var(--neutral-c) * 1.75) var(--neutral-h));
+  --border-strong: oklch(0.55 calc(var(--neutral-c) * 2) var(--neutral-h));
     --text: oklch(0.935 calc(var(--neutral-c) * 0.75) var(--neutral-h));
     --muted: oklch(0.715 calc(var(--neutral-c) * 1.75) var(--neutral-h));
 
@@ -125,6 +130,7 @@
   --surface: oklch(0.218 calc(var(--neutral-c) * 1.5) var(--neutral-h));
   --surface-2: oklch(0.262 calc(var(--neutral-c) * 1.6) var(--neutral-h));
   --border: oklch(0.322 calc(var(--neutral-c) * 1.75) var(--neutral-h));
+  --border-strong: oklch(0.55 calc(var(--neutral-c) * 2) var(--neutral-h));
   --text: oklch(0.935 calc(var(--neutral-c) * 0.75) var(--neutral-h));
   --muted: oklch(0.715 calc(var(--neutral-c) * 1.75) var(--neutral-h));
 
@@ -729,7 +735,7 @@ textarea {
   width: 100%;
   padding: 10px 12px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   background: var(--bg);
   color: var(--text);
   /* 16px on small screens stops iOS Safari zooming in on focus. */
@@ -814,7 +820,7 @@ select:disabled {
   align-items: center;
   gap: 10px;
   padding: 11px 13px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
