@@ -1,3 +1,5 @@
+import type { IconName } from "@/components/icons";
+
 // The catalog of modules a Role can be granted access to.
 //
 // This is the single source of truth for three things at once:
@@ -9,11 +11,19 @@
 // is NOT protected until its route calls `requireModule()`. See docs/rbac.md.
 
 export const MODULES = [
-  { key: "dashboard", label: "Dashboard", icon: "📊", path: "/dashboard" },
-  { key: "users", label: "User Management", icon: "👥", path: "/users" },
-  { key: "roles", label: "Role Management", icon: "🛡️", path: "/roles" },
-  { key: "profile", label: "Profile Management", icon: "⚙️", path: "/profile" },
-] as const;
+  { key: "dashboard", label: "Dashboard", icon: "dashboard", path: "/dashboard" },
+  { key: "users", label: "User Management", icon: "users", path: "/users" },
+  { key: "roles", label: "Role Management", icon: "shield", path: "/roles" },
+  { key: "profile", label: "Profile Management", icon: "settings", path: "/profile" },
+  // `as const` keeps the literal types (ModuleKey stays a union of the four
+  // keys, which every guard depends on); `satisfies` checks each icon against
+  // the registry, so a typo fails the build instead of rendering a blank.
+] as const satisfies readonly {
+  key: string;
+  label: string;
+  icon: IconName;
+  path: string;
+}[];
 
 export type ModuleDefinition = (typeof MODULES)[number];
 export type ModuleKey = ModuleDefinition["key"];

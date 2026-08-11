@@ -1,12 +1,13 @@
 "use client";
 
 import { useTheme } from "./ThemeProvider";
+import { Icon, type IconName } from "@/components/icons";
 import { THEME_CHOICES, type ThemeChoice } from "./theme";
 
-const LABELS: Record<ThemeChoice, { icon: string; text: string }> = {
-  light: { icon: "☀️", text: "Light" },
-  dark: { icon: "🌙", text: "Dark" },
-  system: { icon: "🖥️", text: "System" },
+const LABELS: Record<ThemeChoice, { icon: IconName; text: string }> = {
+  light: { icon: "sun", text: "Light" },
+  dark: { icon: "moon", text: "Dark" },
+  system: { icon: "monitor", text: "System" },
 };
 
 /**
@@ -39,7 +40,9 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
             className={"theme-option" + (active ? " active" : "")}
             onClick={() => setChoice(option)}
           >
-            <span aria-hidden="true">{icon}</span>
+            <span aria-hidden="true">
+              <Icon name={icon} size={15} />
+            </span>
             {!compact && <span className="theme-option-text">{text}</span>}
           </button>
         );

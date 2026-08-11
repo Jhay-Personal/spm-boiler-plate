@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link, { useLinkStatus } from "next/link";
+import { Icon } from "@/components/icons";
 import Avatar from "./ui/Avatar";
 import { useErrorDialog } from "./ui/ErrorDialogProvider";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
@@ -85,7 +86,7 @@ export default function AppShell({ user, nav, children }: AppShellProps) {
                 onClick={() => setDrawerOpen(false)}
               >
                 <span className="nav-ico" aria-hidden="true">
-                  {m.icon}
+                  <Icon name={m.icon} size={18} />
                 </span>
                 <span className="nav-label">{m.label}</span>
                 <NavPending />
@@ -109,7 +110,8 @@ export default function AppShell({ user, nav, children }: AppShellProps) {
             disabled={signingOut}
             style={{ width: "100%", justifyContent: "center" }}
           >
-            ⏻ {signingOut ? "Signing out…" : "Sign out"}
+            <Icon name="signOut" size={16} />
+            {signingOut ? "Signing out…" : "Sign out"}
           </button>
         </div>
       </aside>
@@ -124,7 +126,7 @@ export default function AppShell({ user, nav, children }: AppShellProps) {
             aria-expanded={drawerOpen}
             aria-controls="app-sidebar"
           >
-            ☰
+            <Icon name="menu" size={18} />
           </button>
           <h1>{title}</h1>
           <div className="topbar-right">

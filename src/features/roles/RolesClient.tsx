@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Field from "@/components/ui/Field";
+import { Icon } from "@/components/icons";
 import Modal from "@/components/ui/Modal";
 import { useErrorDialog } from "@/components/ui/ErrorDialogProvider";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -142,14 +143,14 @@ export function RolesClient({ initialRoles }: { initialRoles: RoleSummary[] }) {
             setForm({ ...EMPTY_FORM });
           }}
         >
-          ＋ Create group
+          <Icon name="plus" size={15} /> Create group
         </button>
       </div>
 
       {roles.length === 0 ? (
         <div className="empty-state">
           <div className="big" aria-hidden="true">
-            🛡️
+            <Icon name="shield" size={28} />
           </div>
           No groups yet.
         </div>
@@ -293,7 +294,7 @@ export function RolesClient({ initialRoles }: { initialRoles: RoleSummary[] }) {
                           onChange={() => toggleModule(module.key)}
                         />
                         <span className="nav-ico" aria-hidden="true">
-                          {module.icon}
+                          <Icon name={module.icon} size={16} />
                         </span>
                         <span>
                           <span className="ci-label">{module.label}</span>

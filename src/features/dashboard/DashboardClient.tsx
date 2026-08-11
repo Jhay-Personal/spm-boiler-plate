@@ -1,6 +1,7 @@
 "use client";
 
 import Avatar from "@/components/ui/Avatar";
+import { Icon, type IconName } from "@/components/icons";
 import type { DashboardStats } from "@/lib/types";
 
 function formatDate(value: string | null): string {
@@ -19,7 +20,7 @@ type StatCardProps = {
   label: string;
   value: number | string;
   sub?: string;
-  icon: string;
+  icon: IconName;
   tone: "indigo" | "green" | "amber" | "blue";
 };
 
@@ -28,7 +29,7 @@ function StatCard({ label, value, sub, icon, tone }: StatCardProps) {
     <div className="stat">
       <div className="label">
         <span className={"stat-ico " + tone} aria-hidden="true">
-          {icon}
+          <Icon name={icon} size={16} />
         </span>
         {label}
       </div>
@@ -58,28 +59,28 @@ export function DashboardClient({ userName, stats }: DashboardClientProps) {
           label="Total users"
           value={stats.totalUsers}
           sub="Admin accounts"
-          icon="👥"
+          icon="users"
           tone="indigo"
         />
         <StatCard
           label="Active"
           value={stats.activeUsers}
           sub="Can sign in"
-          icon="✅"
+          icon="check"
           tone="green"
         />
         <StatCard
           label="Disabled"
           value={stats.disabledUsers}
           sub="Sign-in blocked"
-          icon="⛔"
+          icon="ban"
           tone="amber"
         />
         <StatCard
           label="Access groups"
           value={stats.totalRoles}
           sub={`${stats.superRoles} with full access`}
-          icon="🛡️"
+          icon="shield"
           tone="blue"
         />
       </div>
@@ -93,7 +94,7 @@ export function DashboardClient({ userName, stats }: DashboardClientProps) {
         {stats.recentUsers.length === 0 ? (
           <div className="empty-state">
             <div className="big" aria-hidden="true">
-              👤
+              <Icon name="user" size={28} />
             </div>
             No users yet.
           </div>

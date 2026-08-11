@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Icon } from "@/components/icons";
 import { apiFetch } from "@/lib/api-client";
 import { useErrorDialog } from "./ErrorDialogProvider";
 import { initialsFor } from "./Avatar";
@@ -48,7 +49,7 @@ export default function PhotoUploader({
         <img className="photo-preview" src={value} alt="Selected profile photo" />
       ) : (
         <div className="photo-preview empty" aria-hidden="true">
-          {initialsFor(name) || "📷"}
+          {initialsFor(name) || <Icon name="image" size={24} />}
         </div>
       )}
       <div>

@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Avatar from "@/components/ui/Avatar";
+import { Icon } from "@/components/icons";
 import Field from "@/components/ui/Field";
 import Modal from "@/components/ui/Modal";
 import PhotoUploader from "@/components/ui/PhotoUploader";
@@ -207,7 +208,7 @@ export function UsersClient({
           <p>Create sign-in accounts, assign roles, and reset passwords.</p>
         </div>
         <button type="button" className="btn primary" onClick={openAdd}>
-          ＋ Add user
+          <Icon name="plus" size={15} /> Add user
         </button>
       </div>
 
@@ -241,7 +242,7 @@ export function UsersClient({
                   <td colSpan={5} className="cell-empty">
                     <div className="empty-state">
                       <div className="big" aria-hidden="true">
-                        👥
+                        <Icon name="users" size={28} />
                       </div>
                       No users found.
                     </div>

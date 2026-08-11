@@ -17,6 +17,7 @@ import {
   toastReducer,
   type ToastTone,
 } from "@/lib/toasts";
+import { Icon } from "@/components/icons";
 
 // Confirmations live here; failures live in ErrorDialogProvider's modal. The
 // split is deliberate: a success needs to be noticed and then go away on its
@@ -87,7 +88,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               aria-label="Dismiss notification"
               onClick={() => dispatch({ type: "dismiss", id: toast.id })}
             >
-              ×
+              <Icon name="close" size={14} />
             </button>
           </div>
         ))}

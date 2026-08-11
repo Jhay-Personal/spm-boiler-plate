@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { Icon } from "@/components/icons";
 
 type ModalProps = {
   title: string;
@@ -117,7 +118,7 @@ export default function Modal({
             onClick={onClose}
             aria-label="Close"
           >
-            ×
+            <Icon name="close" size={16} />
           </button>
         </div>
         <div className="modal-body">{children}</div>

@@ -575,17 +575,24 @@ h3 {
   flex-shrink: 0;
 }
 
+/* Each tone sets a matching text colour, so the icon inside inherits it
+   through currentColor rather than needing its own fill. */
+
 .stat-ico.indigo {
   background: var(--primary-soft);
+  color: var(--primary-text);
 }
 .stat-ico.green {
   background: var(--success-soft);
+  color: var(--success-text);
 }
 .stat-ico.amber {
   background: var(--warning-soft);
+  color: var(--warning-text);
 }
 .stat-ico.blue {
   background: var(--info-soft);
+  color: var(--info-text);
 }
 
 /* ---------- Badges ---------- */
@@ -1024,8 +1031,10 @@ select:disabled {
 }
 
 .empty-state .big {
-  font-size: var(--text-display);
-  margin-bottom: 8px;
+  display: flex;
+  justify-content: center;
+  color: var(--muted);
+  margin-bottom: 10px;
 }
 
 .list-inline {
