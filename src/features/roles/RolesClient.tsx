@@ -1,8 +1,11 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import Field from "@/components/ui/Field";
 import Modal from "@/components/ui/Modal";
 import { useErrorDialog } from "@/components/ui/ErrorDialogProvider";
+import { useToast } from "@/components/ui/ToastProvider";
+import { useFormErrors } from "@/features/forms/useFormErrors";
 import { apiFetch, apiJson } from "@/lib/api-client";
 import { MODULES, type ModuleKey } from "@/lib/modules";
 import type { RoleSummary } from "@/lib/types";
@@ -31,9 +34,11 @@ export function RolesClient({ initialRoles }: { initialRoles: RoleSummary[] }) {
   const [form, setForm] = useState<FormState | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<RoleSummary | null>(null);
-  const [flash, setFlash] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
-  const { showError, reportError } = useErrorDialog();
+  const { reportError } = useErrorDialog();
+  const { showToast } = useToast();
+  const roleForm = useFormErrors("role-form");
 
   const refresh = useCallback(async () => {
     try {
@@ -44,7 +49,13 @@ export function RolesClient({ initialRoles }: { initialRoles: RoleSummary[] }) {
     }
   }, [reportError]);
 
+  function closeForm() {
+    setForm(null);
+    roleForm.reset();
+  }
+
   function openEdit(role: RoleSummary) {
+    roleForm.reset();
     setForm({
       id: role.id,
       name: role.name,
@@ -71,28 +82,22 @@ export function RolesClient({ initialRoles }: { initialRoles: RoleSummary[] }) {
     if (!form) return;
     const isEdit = form.id !== null;
 
-    const parsed = roleInputSchema.safeParse({
+    const parsed = roleForm.validate(roleInputSchema, {
       name: form.name,
       description: form.description,
       modules: form.modules,
     });
-    if (!parsed.success) {
-      showError(
-        parsed.error.issues[0]?.message ?? "Check the form and try again.",
-        "Could not save group",
-      );
-      return;
-    }
+    if (!parsed) return;
 
     setSaving(true);
     try {
       if (isEdit) {
-        await apiJson(`/api/roles/${form.id}`, "PUT", parsed.data);
+        await apiJson(`/api/roles/${form.id}`, "PUT", parsed);
       } else {
-        await apiJson("/api/roles", "POST", parsed.data);
+        await apiJson("/api/roles", "POST", parsed);
       }
-      setForm(null);
-      setFlash(isEdit ? "Group updated." : "Group created.");
+      closeForm();
+      showToast(isEdit ? "Group updated." : "Group created.");
       await refresh();
     } catch (err) {
       reportError(err, "Could not save group");
@@ -103,13 +108,16 @@ export function RolesClient({ initialRoles }: { initialRoles: RoleSummary[] }) {
 
   async function doDelete() {
     if (!confirmDelete) return;
+    setDeleting(true);
     try {
       await apiJson(`/api/roles/${confirmDelete.id}`, "DELETE");
       setConfirmDelete(null);
-      setFlash("Group deleted.");
+      showToast("Group deleted.");
       await refresh();
     } catch (err) {
       reportError(err, "Could not delete group");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -129,17 +137,14 @@ export function RolesClient({ initialRoles }: { initialRoles: RoleSummary[] }) {
         <button
           type="button"
           className="btn primary"
-          onClick={() => setForm({ ...EMPTY_FORM })}
+          onClick={() => {
+            roleForm.reset();
+            setForm({ ...EMPTY_FORM });
+          }}
         >
           ＋ Create group
         </button>
       </div>
-
-      {flash && (
-        <div className="alert success" role="status">
-          {flash}
-        </div>
-      )}
 
       {roles.length === 0 ? (
         <div className="empty-state">
@@ -206,14 +211,10 @@ export function RolesClient({ initialRoles }: { initialRoles: RoleSummary[] }) {
         <Modal
           wide
           title={form.id ? "Edit group" : "Create group"}
-          onClose={() => setForm(null)}
+          onClose={closeForm}
           footer={
             <>
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={() => setForm(null)}
-              >
+              <button type="button" className="btn ghost" onClick={closeForm}>
                 Cancel
               </button>
               <button
@@ -227,29 +228,48 @@ export function RolesClient({ initialRoles }: { initialRoles: RoleSummary[] }) {
             </>
           }
         >
-          <div className="field">
-            <label htmlFor="role-name">Group name *</label>
-            <input
-              id="role-name"
-              type="text"
-              value={form.name}
-              onChange={(event) => setForm({ ...form, name: event.target.value })}
-              placeholder="e.g. Support Team"
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="role-description">Description</label>
-            <input
-              id="role-description"
-              type="text"
-              value={form.description}
-              onChange={(event) =>
-                setForm({ ...form, description: event.target.value })
-              }
-              placeholder="What can this group do?"
-            />
-          </div>
+          <Field
+            formId="role-form"
+            name="name"
+            label="Group name"
+            required
+            error={roleForm.errors.name}
+          >
+            {(control) => (
+              <input
+                {...control}
+                type="text"
+                value={form.name}
+                onChange={(event) => {
+                  setForm({ ...form, name: event.target.value });
+                  roleForm.clearField("name");
+                }}
+                placeholder="e.g. Support Team"
+              />
+            )}
+          </Field>
+          <Field
+            formId="role-form"
+            name="description"
+            label="Description"
+            error={roleForm.errors.description}
+          >
+            {(control) => (
+              <input
+                {...control}
+                type="text"
+                value={form.description}
+                onChange={(event) => {
+                  setForm({ ...form, description: event.target.value });
+                  roleForm.clearField("description");
+                }}
+                placeholder="What can this group do?"
+              />
+            )}
+          </Field>
 
+          {/* Not a Field: a checkbox grid has no single control for htmlFor to
+              point at, so the label and any error are rendered directly. */}
           <div className="field">
             <label>Modules</label>
             {form.is_super ? (
@@ -287,6 +307,9 @@ export function RolesClient({ initialRoles }: { initialRoles: RoleSummary[] }) {
                 <div className="hint">
                   Profile Management is always available to every signed-in user.
                 </div>
+                {roleForm.errors.modules && (
+                  <div className="field-error">{roleForm.errors.modules}</div>
+                )}
               </>
             )}
           </div>
@@ -307,8 +330,13 @@ export function RolesClient({ initialRoles }: { initialRoles: RoleSummary[] }) {
               >
                 Cancel
               </button>
-              <button type="button" className="btn danger" onClick={doDelete}>
-                Delete group
+              <button
+                type="button"
+                className="btn danger"
+                onClick={doDelete}
+                disabled={deleting}
+              >
+                {deleting ? "Deleting…" : "Delete group"}
               </button>
             </>
           }
