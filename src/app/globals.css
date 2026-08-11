@@ -744,6 +744,26 @@ select:disabled {
   }
 }
 
+.field-error {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--danger-text);
+  margin-top: 6px;
+}
+
+.field.has-error input,
+.field.has-error select,
+.field.has-error textarea {
+  border-color: var(--danger);
+}
+
+.field.has-error input:focus,
+.field.has-error select:focus,
+.field.has-error textarea:focus {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-soft);
+}
+
 /* module checkbox grid */
 .check-grid {
   display: grid;
