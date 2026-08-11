@@ -171,3 +171,49 @@ describe("moduleKeysSchema", () => {
     );
   });
 });
+
+describe("roleIdSchema messages", () => {
+  it("reports a written message for a non-numeric value", () => {
+    const result = roleIdSchema.safeParse("abc");
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe("Select a valid role group.");
+    }
+  });
+
+  it("reports a written message for a non-positive value", () => {
+    const result = roleIdSchema.safeParse("-1");
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe("Select a valid role group.");
+    }
+  });
+
+  it("still accepts an empty string as null and a numeric id as a number", () => {
+    expect(roleIdSchema.parse("")).toBeNull();
+    expect(roleIdSchema.parse("3")).toBe(3);
+    expect(roleIdSchema.parse(2)).toBe(2);
+  });
+
+  // These already pass. They are pinned so a future Zod upgrade that
+  // reintroduces a generic union message is caught here rather than in the UI.
+  it("keeps the written messages for email, mobile and photo_url", () => {
+    const email = emailSchema.safeParse("not-an-email");
+    const mobile = mobileSchema.safeParse("!!!");
+    const photo = photoUrlSchema.safeParse("https://evil.test/x.png");
+    expect(email.success).toBe(false);
+    expect(mobile.success).toBe(false);
+    expect(photo.success).toBe(false);
+    if (!email.success) {
+      expect(email.error.issues[0]?.message).toBe("Enter a valid email address.");
+    }
+    if (!mobile.success) {
+      expect(mobile.error.issues[0]?.message).toBe(
+        "Enter a valid mobile number (digits, spaces and hyphens only).",
+      );
+    }
+    if (!photo.success) {
+      expect(photo.error.issues[0]?.message).toBe("Photo must be an uploaded file.");
+    }
+  });
+});

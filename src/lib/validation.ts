@@ -44,8 +44,25 @@ export const passwordSchema = z
 
 export const statusSchema = z.enum(["active", "disabled"]);
 
+/**
+ * A role id, or "" meaning "no role".
+ *
+ * The written messages are on both the union and the number branch. Zod reports
+ * the union's own message when neither branch is plausible ("abc"), and the
+ * branch's message when one is ("-1" coerces to a number, then fails positive).
+ * Without them a bad value reaches the client as "Invalid input".
+ */
 export const roleIdSchema = z
-  .union([z.literal(""), z.coerce.number().int().positive()])
+  .union(
+    [
+      z.literal(""),
+      z.coerce
+        .number()
+        .int("Select a valid role group.")
+        .positive("Select a valid role group."),
+    ],
+    { error: "Select a valid role group." },
+  )
   .transform((v) => (v === "" ? null : v))
   .nullable();
 
