@@ -203,29 +203,38 @@ destructive action can be double-fired.
 
 ## The union message defect
 
-`emailSchema`, `mobileSchema`, `roleIdSchema` and `photoUrlSchema` are all
-`z.union([z.literal(""), …])`. When both branches fail, Zod reports an
-`invalid_union` issue whose own message is generic — so a malformed email can
-surface as *"Invalid input"* instead of the written *"Enter a valid email
-address."*
+**Corrected after empirical testing against the installed Zod 4.4.3.** The first
+draft of this spec claimed all four `z.union([z.literal(""), …])` field schemas
+produced a generic message. They do not. Verified actual output:
 
-This is latent today because only `issues[0]` is ever shown and it is usually a
-different field. Once messages sit under the field they describe, it is glaring.
-It affects the server too: `firstZodMessage` in `src/lib/api.ts` reads the same
-issue, so a 400 from the API carries the same generic text.
+| Field | Input | Issue | Message |
+|---|---|---|---|
+| `email` | `"not-an-email"` | `invalid_format`, path `["email"]` | "Enter a valid email address." ✅ |
+| `mobile` | `"!!!"` | `invalid_format`, path `["mobile"]` | "Enter a valid mobile number…" ✅ |
+| `photo_url` | `"https://evil.test/x.png"` | `invalid_format`, path `["photo_url"]` | "Photo must be an uploaded file." ✅ |
+| `role_id` | `"abc"` | **`invalid_union`**, path `["role_id"]` | **"Invalid input"** ❌ |
+
+Zod 4 picks the plausible branch and surfaces its sub-issue directly, so three of
+the four are already correct. Only `roleIdSchema` degrades, because both of its
+branches — the `""` literal and `z.coerce.number().int().positive()` — fail
+outright on a non-numeric string, leaving Zod nothing to prefer.
+
+Reachability is low but not zero: `role_id` is a `<select>` whose options are
+always valid, so the UI cannot normally produce it. A crafted API request can,
+and today receives a 400 reading "Invalid input" — unhelpful for anyone
+integrating against the endpoint.
 
 Fixed in two places, deliberately redundant:
 
-1. **`src/lib/validation.ts`** — give each union an explicit error message, so
-   client *and* server produce the written text. The exact parameter shape is
-   confirmed against the installed Zod version as the first step of this task,
-   and the accompanying unit test asserts the resulting message, so a wrong guess
-   fails immediately rather than silently.
+1. **`src/lib/validation.ts`** — `roleIdSchema` gains an explicit message, so
+   client *and* server produce readable text. Only this one schema changes; the
+   other three are already correct and are left alone.
 2. **`fieldErrorsFromZod`** — descend into `invalid_union` sub-issues as a
-   fallback, so any union added later cannot regress the client display.
+   general fallback, so a union added later cannot regress the client display.
 
-New unit tests in `tests/unit/validation.test.ts` assert the message for an
-invalid email and an invalid mobile.
+A unit test in `tests/unit/validation.test.ts` asserts the `role_id` message, and
+three companion assertions pin the *already correct* email, mobile and photo_url
+messages so a future Zod upgrade that reintroduces the generic message is caught.
 
 ---
 
@@ -324,8 +333,9 @@ reverting 3–5 first.
 
 1. A form with three invalid fields shows three messages on one submit, with the
    first invalid field focused.
-2. An invalid email reads "Enter a valid email address." on both the client and
-   in the API's 400 response.
+2. An invalid `role_id` reads a written message rather than "Invalid input", on
+   both the client and in the API's 400 response; email, mobile and photo_url
+   keep the messages they already produce.
 3. Server failures, permission denials and conflicts still appear in the modal.
 4. Success messages self-dismiss.
 5. Tab cannot leave an open dialog; closing one returns focus to its trigger.
