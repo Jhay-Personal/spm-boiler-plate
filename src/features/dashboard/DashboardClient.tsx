@@ -98,7 +98,7 @@ export function DashboardClient({ userName, stats }: DashboardClientProps) {
             No users yet.
           </div>
         ) : (
-          <div className="table-wrap">
+          <div className="table-wrap table-cards">
             <table>
               <thead>
                 <tr>
@@ -111,7 +111,7 @@ export function DashboardClient({ userName, stats }: DashboardClientProps) {
               <tbody>
                 {stats.recentUsers.map((user) => (
                   <tr key={user.id}>
-                    <td>
+                    <td data-label="User">
                       <div className="user-chip">
                         <Avatar
                           src={user.photo_url}
@@ -126,14 +126,14 @@ export function DashboardClient({ userName, stats }: DashboardClientProps) {
                         </div>
                       </div>
                     </td>
-                    <td>
+                    <td data-label="Role">
                       {user.role_name ? (
                         <span className="badge indigo">{user.role_name}</span>
                       ) : (
                         <span className="badge gray">No role</span>
                       )}
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <span
                         className={
                           "badge " + (user.status === "active" ? "green" : "red")
@@ -142,7 +142,9 @@ export function DashboardClient({ userName, stats }: DashboardClientProps) {
                         {user.status}
                       </span>
                     </td>
-                    <td className="muted">{formatDate(user.created_at)}</td>
+                    <td className="muted" data-label="Added">
+                      {formatDate(user.created_at)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

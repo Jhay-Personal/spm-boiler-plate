@@ -1202,3 +1202,95 @@ code {
     width: auto;
   }
 }
+
+/* ===========================================================================
+   Card tables
+   ---------------------------------------------------------------------------
+   Opt in by adding `table-cards` to a `.table-wrap`. Below 700px each row
+   becomes a card and each cell prints its column name from `data-label`, so a
+   five-column table stops being a sideways scroll on a phone.
+
+   Every <td> in a `.table-cards` table needs a `data-label`, except an action
+   row (`class="cell-actions"`) or a full-width empty state
+   (`class="cell-empty"`).
+   ======================================================================== */
+@media (max-width: 700px) {
+  .table-wrap.table-cards {
+    border: none;
+    background: transparent;
+    overflow-x: visible;
+  }
+
+  .table-cards table,
+  .table-cards tbody,
+  .table-cards tr,
+  .table-cards td {
+    display: block;
+    width: 100%;
+  }
+
+  /* Kept in the accessibility tree — the headers still name the columns for a
+     screen reader reading the table linearly. */
+  .table-cards thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .table-cards tbody tr {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    padding: 4px 0;
+  }
+
+  .table-cards tbody tr:hover {
+    background: var(--surface);
+  }
+
+  .table-cards tbody td {
+    border-bottom: none;
+    padding: 9px 14px;
+    display: grid;
+    grid-template-columns: minmax(84px, 32%) 1fr;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .table-cards tbody td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .table-cards tbody td.cell-actions {
+    display: block;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+    padding-top: 12px;
+  }
+
+  .table-cards tbody td.cell-actions::before {
+    content: none;
+  }
+
+  .table-cards tbody td.cell-actions .btn-row {
+    justify-content: flex-start;
+  }
+
+  /* The empty state spans every column, so it must not be laid out as a pair. */
+  .table-cards tbody td.cell-empty {
+    display: block;
+  }
+
+  .table-cards tbody td.cell-empty::before {
+    content: none;
+  }
+}
