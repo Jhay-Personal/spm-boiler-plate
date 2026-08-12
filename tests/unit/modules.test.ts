@@ -5,6 +5,7 @@ import {
   MODULE_KEYS,
   allowedModules,
   canAccess,
+  groupedModules,
   isModuleKey,
   moduleByKey,
   type ModuleKey,
@@ -137,5 +138,44 @@ describe("canAccess", () => {
       if (ALWAYS_ALLOWED.includes(key)) continue;
       expect(canAccess(null, key)).toBe(false);
     }
+  });
+});
+
+describe("groupedModules", () => {
+  it("returns categories in declared order, with administration holding users and roles", () => {
+    const groups = groupedModules(MODULES);
+
+    expect(groups.map((g) => g.key)).toEqual([
+      "overview",
+      "administration",
+      "account",
+    ]);
+    expect(groups.map((g) => g.label)).toEqual([
+      "Overview",
+      "Administration",
+      "Account",
+    ]);
+
+    const administration = groups.find((g) => g.key === "administration");
+    expect(administration).toBeDefined();
+    expect(administration!.modules.map((m) => m.key)).toEqual([
+      "users",
+      "roles",
+    ]);
+  });
+
+  it("drops categories with no visible modules", () => {
+    // What a role granted only Profile access sees. Rendering an empty
+    // "Administration" heading would advertise modules it cannot reach.
+    const profileOnly = MODULES.filter((m) => m.key === "profile");
+    const groups = groupedModules(profileOnly);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0]!.key).toBe("account");
+    expect(groups[0]!.modules.map((m) => m.key)).toEqual(["profile"]);
+  });
+
+  it("returns no groups for an empty list", () => {
+    expect(groupedModules([])).toEqual([]);
   });
 });

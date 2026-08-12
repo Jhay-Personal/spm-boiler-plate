@@ -10,19 +10,55 @@ import type { IconName } from "@/components/icons";
 // Adding a module here is all it takes to make it grantable — but a new module
 // is NOT protected until its route calls `requireModule()`. See docs/rbac.md.
 
+// The sidebar's sections. Declaration order is display order.
+export const MODULE_CATEGORIES = [
+  { key: "overview", label: "Overview" },
+  { key: "administration", label: "Administration" },
+  { key: "account", label: "Account" },
+] as const satisfies readonly { key: string; label: string }[];
+
+export type ModuleCategory = (typeof MODULE_CATEGORIES)[number];
+export type ModuleCategoryKey = ModuleCategory["key"];
+
 export const MODULES = [
-  { key: "dashboard", label: "Dashboard", icon: "dashboard", path: "/dashboard" },
-  { key: "users", label: "User Management", icon: "users", path: "/users" },
-  { key: "roles", label: "Role Management", icon: "shield", path: "/roles" },
-  { key: "profile", label: "Profile Management", icon: "settings", path: "/profile" },
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    icon: "dashboard",
+    path: "/dashboard",
+    category: "overview",
+  },
+  {
+    key: "users",
+    label: "User Management",
+    icon: "users",
+    path: "/users",
+    category: "administration",
+  },
+  {
+    key: "roles",
+    label: "Role Management",
+    icon: "shield",
+    path: "/roles",
+    category: "administration",
+  },
+  {
+    key: "profile",
+    label: "Profile Management",
+    icon: "settings",
+    path: "/profile",
+    category: "account",
+  },
   // `as const` keeps the literal types (ModuleKey stays a union of the four
   // keys, which every guard depends on); `satisfies` checks each icon against
-  // the registry, so a typo fails the build instead of rendering a blank.
+  // the registry and each category against MODULE_CATEGORIES, so a typo fails
+  // the build instead of rendering a blank or an orphaned module.
 ] as const satisfies readonly {
   key: string;
   label: string;
   icon: IconName;
   path: string;
+  category: ModuleCategoryKey;
 }[];
 
 export type ModuleDefinition = (typeof MODULES)[number];
@@ -38,6 +74,28 @@ export function isModuleKey(value: unknown): value is ModuleKey {
 
 export function moduleByKey(key: ModuleKey): ModuleDefinition | undefined {
   return MODULES.find((m) => m.key === key);
+}
+
+export type ModuleGroup = {
+  key: ModuleCategoryKey;
+  label: string;
+  modules: ModuleDefinition[];
+};
+
+// Groups a module list into the sidebar's sections, in declared order.
+//
+// The input is already filtered to what the signed-in role may see, so a
+// category with no surviving members is dropped rather than rendered empty —
+// an empty "Administration" heading would advertise the shape of the module
+// catalog to someone who was not granted it.
+export function groupedModules(
+  list: readonly ModuleDefinition[],
+): ModuleGroup[] {
+  return MODULE_CATEGORIES.map((category) => ({
+    key: category.key,
+    label: category.label,
+    modules: list.filter((m) => m.category === category.key),
+  })).filter((group) => group.modules.length > 0);
 }
 
 // Profile is always available to any signed-in user (everyone may edit their
