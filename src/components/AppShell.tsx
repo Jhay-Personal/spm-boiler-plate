@@ -8,8 +8,7 @@ import Avatar from "./ui/Avatar";
 import { useErrorDialog } from "./ui/ErrorDialogProvider";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 import { apiJson } from "@/lib/api-client";
-import type { ModuleDefinition } from "@/lib/modules";
-import { groupedModules } from "@/lib/modules";
+import { groupedModules, type ModuleDefinition } from "@/lib/modules";
 import type { CurrentUser } from "@/lib/types";
 
 type AppShellProps = {

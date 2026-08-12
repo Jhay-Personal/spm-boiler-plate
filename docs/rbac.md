@@ -14,10 +14,10 @@ extending the app, because the wrong answer *looks* like it works.
 
 ```ts
 export const MODULES = [
-  { key: "dashboard", label: "Dashboard", icon: "📊", path: "/dashboard" },
-  { key: "users",     label: "User Management", icon: "👥", path: "/users" },
-  { key: "roles",     label: "Role Management", icon: "🛡️", path: "/roles" },
-  { key: "profile",   label: "Profile Management", icon: "⚙️", path: "/profile" },
+  { key: "dashboard", label: "Dashboard", icon: "dashboard", path: "/dashboard", category: "overview" },
+  { key: "users",     label: "User Management", icon: "users", path: "/users", category: "administration" },
+  { key: "roles",     label: "Role Management", icon: "shield", path: "/roles", category: "administration" },
+  { key: "profile",   label: "Profile Management", icon: "settings", path: "/profile", category: "account" },
 ] as const;
 ```
 
@@ -152,7 +152,7 @@ attacker's existing 8-hour session working.
 
 ```ts
 // 1. src/lib/modules.ts
-{ key: "reports", label: "Reports", icon: "📈", path: "/reports" }
+{ key: "reports", label: "Reports", icon: "monitor", path: "/reports", category: "administration" }
 ```
 
 ```tsx

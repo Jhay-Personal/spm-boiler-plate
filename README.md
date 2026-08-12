@@ -235,7 +235,7 @@ The layout is mobile-first: below 900px the sidebar becomes an off-canvas drawer
 
 ## Adding a module
 
-1. Add an entry to `MODULES` in [`src/lib/modules.ts`](src/lib/modules.ts).
+1. Add an entry to `MODULES` in [`src/lib/modules.ts`](src/lib/modules.ts), including its `category` field — one of the keys in `MODULE_CATEGORIES`, which decides the sidebar section it appears under.
 2. Create `src/app/(main)/<path>/page.tsx` — a server component whose first line is `await requirePageModule("<key>")`.
 3. Create `src/features/<name>/` for its client view, Zod schema, and queries.
 4. Add API routes that start with `await requireModule("<key>")`.
