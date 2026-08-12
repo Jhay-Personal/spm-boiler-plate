@@ -81,8 +81,13 @@ Replace the single `.nav-section` div and the flat `nav.map(...)` with a loop ov
 links. The link markup — active state, `aria-current`, `NavPending`, drawer dismissal —
 is unchanged.
 
-No CSS changes. `.nav-section` (`src/app/globals.css:287`) is already an uppercase,
-muted, `--text-micro` heading; it simply repeats now.
+`.nav-section` (`src/app/globals.css:287`) is already an uppercase, muted,
+`--text-micro` heading; it simply repeats now.
+
+One CSS addition is required. `.nav` is `display: flex; flex-direction: column;
+gap: 4px`, so wrapping a section's links in a `<div>` makes that wrapper a single flex
+item and collapses the 4px spacing between the links inside it. A `.nav-group` rule
+repeats the same three declarations on the wrapper, leaving spacing identical to today.
 
 ### Accessibility
 
@@ -119,5 +124,6 @@ render path, and asserting on heading text would only re-test a copy string.
 |---|---|
 | `src/lib/modules.ts` | `MODULE_CATEGORIES`, `category` field, `groupedModules` |
 | `src/components/AppShell.tsx` | render grouped sections |
+| `src/app/globals.css` | add `.nav-group` |
 | `tests/unit/modules.test.ts` | two grouping tests |
 | `CLAUDE.md` | note that a new module declares a category |
