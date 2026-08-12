@@ -9,6 +9,7 @@ import { useErrorDialog } from "./ui/ErrorDialogProvider";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 import { apiJson } from "@/lib/api-client";
 import type { ModuleDefinition } from "@/lib/modules";
+import { groupedModules } from "@/lib/modules";
 import type { CurrentUser } from "@/lib/types";
 
 type AppShellProps = {
@@ -71,28 +72,39 @@ export default function AppShell({ user, nav, children }: AppShellProps) {
         </div>
 
         <nav className="nav" aria-label="Modules">
-          <div className="nav-section">Modules</div>
-          {nav.map((m) => {
-            const active =
-              pathname === m.path || pathname.startsWith(m.path + "/");
-            return (
-              <Link
-                key={m.key}
-                href={m.path}
-                className={"nav-link" + (active ? " active" : "")}
-                aria-current={active ? "page" : undefined}
-                // Dismiss the drawer on navigation, otherwise the new page
-                // renders behind it on a phone.
-                onClick={() => setDrawerOpen(false)}
-              >
-                <span className="nav-ico" aria-hidden="true">
-                  <Icon name={m.icon} size={18} />
-                </span>
-                <span className="nav-label">{m.label}</span>
-                <NavPending />
-              </Link>
-            );
-          })}
+          {groupedModules(nav).map((group) => (
+            <div
+              key={group.key}
+              className="nav-group"
+              role="group"
+              aria-labelledby={`nav-cat-${group.key}`}
+            >
+              <div className="nav-section" id={`nav-cat-${group.key}`}>
+                {group.label}
+              </div>
+              {group.modules.map((m) => {
+                const active =
+                  pathname === m.path || pathname.startsWith(m.path + "/");
+                return (
+                  <Link
+                    key={m.key}
+                    href={m.path}
+                    className={"nav-link" + (active ? " active" : "")}
+                    aria-current={active ? "page" : undefined}
+                    // Dismiss the drawer on navigation, otherwise the new page
+                    // renders behind it on a phone.
+                    onClick={() => setDrawerOpen(false)}
+                  >
+                    <span className="nav-ico" aria-hidden="true">
+                      <Icon name={m.icon} size={18} />
+                    </span>
+                    <span className="nav-label">{m.label}</span>
+                    <NavPending />
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="sidebar-foot">

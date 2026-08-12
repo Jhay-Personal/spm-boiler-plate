@@ -100,7 +100,7 @@ File type is decided by **magic bytes** in `src/lib/uploads.ts` — never the cl
 
 ## Adding a module
 
-1. Add an entry to `MODULES` in `src/lib/modules.ts`.
+1. Add an entry to `MODULES` in `src/lib/modules.ts`, including its `category` — one of the keys in `MODULE_CATEGORIES`, which decides the sidebar section it appears under. The build rejects an entry without a valid one.
 2. `src/app/(main)/<path>/page.tsx` — server component whose first line is `await requirePageModule("<key>")`.
 3. `src/features/<name>/` — client view, `schema.ts`, `queries.ts`.
 4. API routes wrapped in `route()` and starting with `await requireModule("<key>")`.

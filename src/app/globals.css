@@ -292,6 +292,12 @@ h3 {
   padding: 14px 12px 6px;
 }
 
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .nav-link {
   display: flex;
   align-items: center;
