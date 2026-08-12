@@ -168,7 +168,9 @@ What the integration suite asserts, grouped by the failure each part prevents:
 | [theme.spec.ts](tests/e2e/theme.spec.ts) | All three modes surviving a reload — which is also the only automated check that the pre-paint theme script still carries its CSP nonce. |
 | [auth.spec.ts](tests/e2e/auth.spec.ts) | Sign-in, rejection, and the signed-out redirect, through a real browser. |
 
-The two integration suites share one harness ([tests/support/server.ts](tests/support/server.ts)) and both drop `admin_users` and `roles`. They use different ports (3311 and 3312), but **must not run concurrently against the same database** — set `E2E_DATABASE_URL` to separate them, or rely on `npm run verify` running them in sequence.
+The two integration suites share one harness ([tests/support/server.ts](tests/support/server.ts)) and both drop `admin_users` and `roles` before re-seeding a fixture admin.
+
+**Give them their own databases.** Set `TEST_DATABASE_URL` and `E2E_DATABASE_URL` (see [.env.example](.env.example)) and neither suite can touch your development data or the other's — they become safe to run concurrently. Left unset, both fall back to `DATABASE_URL`, which deletes the admin account you sign in with on every run; `npm run init-db` puts it back.
 
 Each `TestClient` sends a distinct `x-forwarded-for`, so it models a separate browser. That is what lets the throttling tests prove the per-identifier limit holds even when an attacker rotates source IPs.
 

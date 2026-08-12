@@ -66,15 +66,25 @@ export type StartOptions = {
   port: number;
   /** Directory under ./data for this suite's uploads, so the two never share. */
   uploadDirName: string;
-  /** Defaults to DATABASE_URL. The E2E suite may point elsewhere. */
-  databaseUrl?: string;
+  /**
+   * Name of the environment variable holding this suite's database URL, e.g.
+   * "TEST_DATABASE_URL". Falls back to DATABASE_URL when that variable is unset.
+   *
+   * Deliberately the variable NAME rather than its value: callers run before
+   * loadDotEnv() below, so reading process.env in the caller would see nothing
+   * from .env and silently fall back to the developer's own database — which
+   * this function then wipes.
+   */
+  databaseUrlVar?: string;
 };
 
 /** Resets the database, seeds the admin, boots `next start`, returns the base URL. */
 export async function startTestServer(options: StartOptions): Promise<string> {
   loadDotEnv();
 
-  const databaseUrl = options.databaseUrl ?? process.env.DATABASE_URL;
+  const databaseUrl =
+    (options.databaseUrlVar ? process.env[options.databaseUrlVar] : undefined) ??
+    process.env.DATABASE_URL;
   if (!databaseUrl) {
     throw new Error(
       "DATABASE_URL is not set. The integration tests need a real PostgreSQL database.\n" +

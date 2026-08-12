@@ -29,9 +29,16 @@ Node >= 22 is required.
 
 ### Before running `npm run test:api` or `npm run test:e2e`
 
-Both suites share one harness, `tests/support/server.ts`, which **drops `admin_users` and `roles` from whatever database it is pointed at**, re-seeds them, then boots `next start`. Never point either at a database you care about. Both require an existing `.next` build — they fail rather than building for you, so re-run `npm run build` after changing server code.
+Both suites share one harness, `tests/support/server.ts`, which **drops `admin_users` and `roles` from whatever database it is pointed at**, re-seeds a fixture admin, then boots `next start`. Both require an existing `.next` build — they fail rather than building for you, so re-run `npm run build` after changing server code.
 
-The API suite uses port 3311 and `DATABASE_URL`; the E2E suite uses port 3312 and `E2E_DATABASE_URL` when set, falling back to `DATABASE_URL`. The separate ports mean the servers cannot collide, but **the database still can — never run the two suites concurrently against the same one.** `npm run verify` runs them in sequence for exactly this reason. Set `E2E_DATABASE_URL` to a second database if you want to run them in parallel.
+**Point each suite at its own database, or they will delete the admin account you sign in with:**
+
+| Suite | Port | Database |
+|---|---|---|
+| `test:api` | 3311 | `TEST_DATABASE_URL`, falling back to `DATABASE_URL` |
+| `test:e2e` | 3312 | `E2E_DATABASE_URL`, falling back to `DATABASE_URL` |
+
+With both set (see `.env.example`) the suites touch neither your development data nor each other, and may run concurrently. With either unset, that suite falls back to `DATABASE_URL` and wipes your dev login on every `npm run verify` — recoverable with `npm run init-db`, which recreates the seed admin and never overwrites an existing account's password.
 
 `npm run test:e2e` also needs the Chromium binary: `npx playwright install chromium` once per machine.
 

@@ -5,8 +5,12 @@ import {
   stopTestServer,
 } from "../../support/server";
 
-// The API suite's slice of the shared harness. See tests/support/server.ts —
-// this is DESTRUCTIVE to the database DATABASE_URL names.
+// The API suite's slice of the shared harness. See tests/support/server.ts.
+//
+// DESTRUCTIVE: it drops admin_users and roles from whatever database it is
+// pointed at. Set TEST_DATABASE_URL to keep it off your development database —
+// otherwise it falls back to DATABASE_URL and will delete the admin account you
+// sign in with.
 
 const PORT = Number(process.env.TEST_PORT ?? 3311);
 const UPLOAD_DIR_NAME = "test-uploads";
@@ -17,6 +21,7 @@ export async function setup(): Promise<void> {
   process.env.TEST_BASE_URL = await startTestServer({
     port: PORT,
     uploadDirName: UPLOAD_DIR_NAME,
+    databaseUrlVar: "TEST_DATABASE_URL",
   });
 }
 
